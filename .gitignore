@@ -1,0 +1,7 @@
+node_modules/
+.vercel/
+.env*
+local/
+test-results/
+.DS_Store
+check-*.png

@@ -1,0 +1,11 @@
+checks
+docs
+openspec
+.claude
+local
+node_modules
+test-results
+deploy.sh
+serve-local.mjs
+test-store.mjs
+README.md

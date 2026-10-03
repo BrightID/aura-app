@@ -1,0 +1,37 @@
+// Local test of the API with the in-memory store: node test-store.mjs
+import world from "./api/world.js";
+import reset from "./api/world/reset.js";
+import presence from "./api/presence.js";
+import claimH from "./api/claim.js";
+process.env.TEAM_CODE = "t";
+const call = async (h, method, url, b) => {
+  let status, out;
+  const res = { status(s) { status = s; return this; }, json(j) { out = j; return this; }, end() { return this; }, setHeader() {} };
+  await h({ method, url, body: b }, res);
+  return [status, out];
+};
+let n = 0;
+const eq = (a, b, m) => { n++; if (JSON.stringify(a) !== JSON.stringify(b)) { console.error("FAIL", m, JSON.stringify(a), JSON.stringify(b)); process.exit(1); } };
+const R = "/api/world?room=demo-1";
+eq(await call(world, "GET", R), [200, { version: 0, generation: 1, world: null }], "empty room");
+eq(await call(world, "PUT", R, { baseVersion: 0, generation: 1, world: { a: 1 } }), [200, { version: 1, generation: 1 }], "first write");
+eq(await call(world, "PUT", R, { baseVersion: 0, generation: 1, world: { b: 1 } }), [409, { version: 1, generation: 1, world: { a: 1 } }], "stale write refused");
+eq(await call(world, "PUT", R, { baseVersion: 1, generation: 1, world: { a: 1, b: 1 } }), [200, { version: 2, generation: 1 }], "merged write");
+eq((await call(world, "GET", "/api/world?room=Bad Room"))[0], 400, "bad room");
+eq((await call(world, "PUT", R, { baseVersion: 2, world: {} }))[0], 400, "missing generation");
+eq((await call(world, "PUT", R, { baseVersion: 2, generation: 1, world: null }))[0], 400, "null world refused");
+eq((await call(world, "PUT", R, { baseVersion: 2, generation: 1, world: { answers: null } }))[0], 400, "bad part refused");
+eq((await call(world, "PUT", R, { baseVersion: 2, generation: 1, world: { answers: { k: "x".repeat(400000) } } }))[0], 413, "oversize refused");
+eq((await call(reset, "POST", "/api/world/reset?room=demo-1", { teamCode: "x" }))[0], 403, "wrong code");
+eq(await call(reset, "POST", "/api/world/reset?room=demo-1", { teamCode: "t" }), [200, { version: 3, generation: 2 }], "reset");
+eq(await call(world, "PUT", R, { baseVersion: 3, generation: 1, world: { jimbo: 1 } }), [409, { version: 3, generation: 2, world: null }], "old-generation tab refused after reset");
+eq(await call(world, "PUT", R, { baseVersion: 3, generation: 2, world: { c: 1 } }), [200, { version: 4, generation: 2 }], "new-generation write");
+eq((await call(presence, "POST", "/api/presence?room=demo-1", { browserId: "browserA1", persona: "auryn" }))[1].here.map((p) => p.persona), ["auryn"], "presence beat");
+eq((await call(presence, "POST", "/api/presence?room=demo-1", { browserId: "x", persona: "auryn" }))[0], 400, "bad browser id");
+const TK = "a".repeat(32);
+eq(await call(claimH, "POST", "/api/claim?room=demo-1", { token: TK, id: "newcomerA" }), [200, { claimedBy: "newcomerA" }], "first claim wins");
+eq(await call(claimH, "POST", "/api/claim?room=demo-1", { token: TK, id: "newcomerB" }), [409, { claimedBy: "newcomerA" }], "second claim learns the winner");
+eq((await call(claimH, "POST", "/api/claim?room=demo-1", { token: "<x>", id: "a" }))[0], 400, "bad token");
+await call(reset, "POST", "/api/world/reset?room=demo-1", { teamCode: "t" });
+eq(await call(claimH, "POST", "/api/claim?room=demo-1", { token: TK, id: "newcomerB" }), [200, { claimedBy: "newcomerB" }], "reset clears claims");
+console.log(`store: all ${n} pass`);
