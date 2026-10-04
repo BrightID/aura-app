@@ -29,7 +29,7 @@ The server, in `api/`, keeps one slot per room on Upstash Redis, holding `{ vers
 
 - `GET /api/world?room=R` reads the slot.
 - `PUT /api/world?room=R` sends `{ baseVersion, generation, world }` and writes only if no one else has written since. If someone has, it answers 409 with `{ version, generation, world }`, and the client merges and tries again.
-- `POST /api/world/reset?room=R` clears the room, if the request carries the team code, and raises `generation`. A browser that sees a higher generation drops its own copy and takes the server's, so a tab left open can't restore a reset room.
+- `POST /api/world/reset?room=R` resets the room, if the request carries the team code, and raises `generation`. The practice cast goes back to the start; real people who joined, and what passed between them, stay (the client sends that part as `keep`). A browser that sees a higher generation drops its own copy and takes the server's, so a tab left open can't restore what the reset cleared.
 - `POST /api/claim?room=R` decides who gets an invite. An invite link can be opened in several browsers, but only the first claim wins; the others see "This invite was already used".
 - `/api/presence` tracks who is in the room.
 
@@ -62,6 +62,6 @@ Today the app has one connection, all practice. The next change splits it by cap
 ## Design and changes
 
 - **Design.** Every screen follows [`docs/design-principles.md`](docs/design-principles.md).
-- **Changes.** Every change goes through OpenSpec, in `openspec/`.
+- **Changes.** Screens, wording, layout, demo data and docs land directly on `main` once every check passes. Changes to what others build on (the room server's API, the world and data shapes, `NodeAdapter`) go through OpenSpec, in `openspec/`.
 - **How Aura works.** That's described in `how-aura-works.md` in BrightID/foundations.
 - **Licence.** MIT; see `LICENSE`.

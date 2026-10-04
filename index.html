@@ -2209,7 +2209,7 @@
       <div id="persona-in-use-warning" role="dialog" aria-label="Persona in use" hidden><p id="persona-in-use-message"></p><button class="action" data-action="use-in-use-persona">Use it</button><button class="nav" data-action="cancel-in-use-persona">Cancel</button></div>
       <button class="action" data-action="simulate-answers">Simulate players answering</button>
       <button class="action" data-action="reset-practice">Reset practice</button>
-      <div id="shared-reset" hidden><label for="team-code">Team code</label><input id="team-code" type="text" autocomplete="off"><button class="action" data-action="reset-room">Reset this room to the start</button><p id="reset-error" role="status"></p></div>
+      <div id="shared-reset" hidden><p>Practice people go back to the start. Real people who joined, and what passed between them, stay.</p><label for="team-code">Team code</label><input id="team-code" type="text" autocomplete="off"><button class="action" data-action="reset-room">Reset this room to the start</button><p id="reset-error" role="status"></p></div>
     </aside>
     <div id="shared-header" hidden>Shared practice · <span id="shared-room-name"></span><span id="shared-here-count"></span><span id="shared-sync-status" role="status"></span></div>
   </header>
@@ -2244,7 +2244,7 @@ Minimum version required to store current data is: `+i+`.
 
   (() => {
     "use strict";
-  const BUILD_STAMP = "v31.2 · 2026-10-04 13:41";
+  const BUILD_STAMP = "v31.3 · 2026-10-04 18:07";
     document.getElementById("build-stamp").textContent = BUILD_STAMP;
     // Seed data
     const SHOW_REAL_NAMES = true;
@@ -4548,7 +4548,8 @@ Minimum version required to store current data is: `+i+`.
       ].includes(S.view)
     )
       S.view = "home";
-    // Shared sync inventory. World: answers, outgoing, arrivalCodes, invites, playerRequests,
+    // Shared sync inventory. keepAfterReset filters the merged world on generation reset.
+    // World: answers, outgoing, arrivalCodes, invites, playerRequests,
     // nodes, nameGrants, controlRelationships, nodesComplete, sharedControlAnswered,
     // arrivalRole, teamAsked, nodeAnswered, nodeAddress, nodeReady, nameVisibility, identities
     // (represented in S by created and D.ids/names/grants). Derived: playerReady,
@@ -4586,7 +4587,25 @@ Minimum version required to store current data is: `+i+`.
       }
       return result;
     }
-    if (debugHooks) window.mergeWorld = mergeWorld;
+    function keepAfterReset(source) {
+      const real = new Set(["philip", "adam", "auryn", ...Object.keys(source?.identities || {})]);
+      const people = {
+        answers: x => [x.rater, x.subject], outgoing: x => [x.from, x.to],
+        playerRequests: x => [x.from, x.to], invites: x => [x.inviter, ...(x.claimedBy !== undefined ? [x.claimedBy] : [])],
+        nodes: x => [x.owner], nameGrants: x => [x.viewer, x.person],
+        controlRelationships: x => [x.owner, x.controller], arrivalCodes: x => [x.from],
+      };
+      const kept = {};
+      for (const part of WORLD_PARTS) {
+        kept[part] = {};
+        for (const [key, record] of Object.entries(source?.[part] || {})) {
+          const named = part === "identities" ? [] : people[part] ? people[part](record) : [key];
+          if (named.every(person => real.has(person))) kept[part][key] = structuredClone(record);
+        }
+      }
+      return kept;
+    }
+    if (debugHooks) { window.mergeWorld = mergeWorld; window.keepAfterReset = keepAfterReset; }
     const stableWorld = value => JSON.stringify(value, (_, item) => item && !Array.isArray(item) && typeof item === "object" ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
     const emptyWorld = () => Object.fromEntries(WORLD_PARTS.map(part => [part, {}]));
     const plain = value => value !== null && typeof value === "object" && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
@@ -4746,13 +4765,17 @@ Minimum version required to store current data is: `+i+`.
       setSyncStatus("Not synced · retrying"); return false;
     }
     function adoptReset(body) {
+      const priorPersona = S.persona, priorView = S.view;
+      const survives = FOUNDING_TEAM.includes(priorPersona) || !!(body.world?.identities?.[priorPersona] && !body.world.identities[priorPersona].removed);
       Object.values(S.pendingAnswers).forEach(x => x.op?.undo()); S.pendingAnswers = {};
       Object.values(S.pendingSends).forEach(x => x.undo()); S.pendingSends = {};
       lastServer = cleanWorld(body.world); world = mergeWorld(seedWorld, lastServer);
       dirty = false; clearTimeout(pushTimer); applyWorld(world);
+      if (!survives) S.persona = "newcomer";
       generation = body.generation; worldVersion = body.version;
       S.creatingInvite = false; S.activeInvite = null; S.inviteNotice = "";
-      S.history = []; S.view = "home"; S.detail = null;
+      if (S.persona === priorPersona) S.view = priorView;
+      else { S.history = []; S.view = "sign-in-flow"; S.detail = null; }
       closeDrawer();
       if (document.activeElement?.matches("input,textarea")) document.activeElement.blur();
       repaintPending = false; render(); persist();
@@ -7275,12 +7298,13 @@ Minimum version required to store current data is: `+i+`.
       }
       if (a === "reset-room" && sharedRoom) {
         const teamCode = document.getElementById("team-code").value;
-        fetch(`/api/world/reset?room=${encodeURIComponent(sharedRoom)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ teamCode }) }).then(async response => {
+        const keep = keepAfterReset(mergeWorld(world, lastServer));
+        fetch(`/api/world/reset?room=${encodeURIComponent(sharedRoom)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ teamCode, keep }) }).then(async response => {
           if (response.status === 403) { document.getElementById("reset-error").textContent = "Wrong team code"; return; }
           if (!response.ok) throw Error("reset failed");
-          const body = await response.json(); adoptReset({ ...body, world: null });
+          const body = await response.json(); adoptReset({ ...body, world: body.world ?? keep });
           S.playerRequests.push(...resetTrainerAsks.map(ask => ({ ...ask })));
-          commitWorld(); closeDrawer();
+          commitWorld();
         }).catch(() => setSyncStatus("Not synced · retrying"));
         return;
       }

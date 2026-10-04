@@ -34,4 +34,7 @@ eq(await call(claimH, "POST", "/api/claim?room=demo-1", { token: TK, id: "newcom
 eq((await call(claimH, "POST", "/api/claim?room=demo-1", { token: "<x>", id: "a" }))[0], 400, "bad token");
 await call(reset, "POST", "/api/world/reset?room=demo-1", { teamCode: "t" });
 eq(await call(claimH, "POST", "/api/claim?room=demo-1", { token: TK, id: "newcomerB" }), [200, { claimedBy: "newcomerB" }], "reset clears claims");
+eq(await call(reset, "POST", "/api/world/reset?room=demo-2", { teamCode: "t", keep: { identities: { abc: { name: "Rowan" } } } }), [200, { version: 1, generation: 2 }], "reset keeping real people");
+eq((await call(world, "GET", "/api/world?room=demo-2"))[1].world, { identities: { abc: { name: "Rowan" } } }, "kept world survives reset");
+eq((await call(reset, "POST", "/api/world/reset?room=demo-2", { teamCode: "t", keep: { answers: null } }))[0], 400, "bad keep refused");
 console.log(`store: all ${n} pass`);

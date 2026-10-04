@@ -13,9 +13,12 @@ function store(room) { if (!rooms.has(room)) rooms.set(room, { version: 0, gener
 async function api(route) {
   const request = route.request(), url = new URL(request.url()), state = store(url.searchParams.get('room'));
   if (url.pathname === '/api/world/reset') {
-    if (JSON.parse(request.postData() || '{}').teamCode !== 'check') return route.fulfill({ status: 403, contentType: 'application/json', body: '{}' });
-    state.version++; state.generation++; state.world = null; state.claims.clear();
-    return route.fulfill(body({ version: state.version, generation: state.generation }));
+    const { teamCode, keep } = JSON.parse(request.postData() || '{}');
+    if (teamCode !== 'check') return route.fulfill({ status: 403, contentType: 'application/json', body: '{}' });
+    if (keep !== null && (!keep || typeof keep !== 'object' || Array.isArray(keep) || Object.getPrototypeOf(keep) !== Object.prototype))
+      return route.fulfill({ status: 400, contentType: 'application/json', body: '{}' });
+    state.version++; state.generation++; state.world = keep; state.claims.clear();
+    return route.fulfill(body({ version: state.version, generation: state.generation, world: state.world }));
   }
   if (url.pathname === '/api/claim') {
     const { token, id } = JSON.parse(request.postData() || '{}');
@@ -190,6 +193,36 @@ async function presenceApi(route) {
       }
     }
   });
+  await check('Real people survive a reset', async () => {
+    const room = fresh(), [a, b] = pages;
+    await open(a, room); await create(a, 'Rowan'); await click(a, 'Interfold node operator');
+    await a.locator('#node-address').fill('https://node.rowan.example'); await click(a, 'Check my node');
+    await click(a, "No, that's all"); await click(a, 'Just me'); await click(a, 'Get endorsed →');
+    await click(a, "They're with me now · QR code");
+    const code = (await a.locator('.arrival-code').innerText()).trim();
+    await click(a, 'Done → Home');
+    const rowan = await a.evaluate(() => window.auraMockAdapter.ui.persona);
+    await open(b, room); await switchTo(b, 'philip'); await click(b, 'Requests');
+    await b.locator('#arrival-code-input').fill(code); await click(b, 'Open request');
+    for (let i = 0; i < 3; i++) await b.locator('#content .answer-slot[data-yes="true"]').nth(i).click();
+    await click(b, 'Requests');
+    await b.locator('.request-section.role-operator .lego-dense-row', { hasText: 'Kenji' }).first().click();
+    for (let i = 0; i < 3; i++) await b.locator('#content .answer-slot[data-yes="true"]').nth(i).click();
+    await b.waitForFunction(() => window.auraMockAdapter.ui.answers.filter(x => x.rater === 'philip' && x.subject === 'kenji').length === 3);
+    await b.locator('#practice-toggle').click(); await b.locator('#team-code').fill('check'); await click(b, 'Reset this room to the start');
+    await a.waitForFunction(id => window.auraMockAdapter.ui.persona === id && document.querySelector('#content')?.textContent.includes('1 of 2 answered Yes'), rowan, { timeout: 6000 });
+    if (await a.evaluate(() => window.auraMockAdapter.ui.view) !== 'home') throw Error('Rowan left Home');
+    if (await b.evaluate(() => window.auraMockAdapter.ui.persona) !== 'philip') throw Error('Philip signed out');
+    await click(b, 'Requests');
+    const kenji = b.locator('.request-section.role-operator .lego-dense-row', { hasText: 'Kenji' }).first();
+    await kenji.click();
+    await b.locator('#content .answer-slot[data-yes="true"]').first().waitFor({ timeout: 6000 });
+    await click(b, 'Requests');
+    if (await b.getByText('Invite · Sam · not opened yet').count() !== 1) throw Error('Sam invite not restored once');
+    for (const page of pages) if (!await page.locator('#persona optgroup[label="New on this call"] option', { hasText: 'Rowan ·' }).count()) throw Error('Rowan absent from picker');
+    if (!Object.values(store(room).world.nodes || {}).some(x => !x.removed && x.owner === rowan)) throw Error('Rowan node was lost');
+    if (Object.values(store(room).world.answers || {}).some(x => !x.removed && x.rater === 'philip' && x.subject === 'kenji')) throw Error('Kenji answer survived');
+  });
   await check('Hostile world is inert on Requests, Home, and QR', async () => {
     const room = fresh(), page = pages[0], attack = '<img src=x onerror=window.__x=1>', badStatus = '"><img src=x onerror=window.__x=1>';
     const state = store(room); state.version = 1; state.world = {
@@ -296,16 +329,16 @@ async function presenceApi(route) {
     if (await a.locator('#identity-name').inputValue() !== 'Jimbo still typing' || !await a.locator('#identity-name').evaluate(x => x === document.activeElement)) throw Error('poll replaced focused input');
   });
   await check('Stale tab cannot undo reset', async () => {
-    const room = fresh(), [a, b] = pages; await open(a, room); const code = await operator(a);
-    const jim = store(room).world.arrivalCodes[code].from;
-    await switchTo(a, 'lena'); await click(a, 'Requests'); await a.locator('#arrival-code-input').fill(code); await click(a, 'Open request');
-    await open(b, room); await choose(b, 'nora');
+    const room = fresh(), [a, b] = pages; await open(a, room); await switchTo(a, 'philip'); await click(a, 'Requests');
+    await a.locator('.request-section.role-operator .lego-dense-row', { hasText: 'Kenji' }).first().click();
+    await open(b, room); await switchTo(b, 'adam');
     await a.locator('#content .answer-slot[data-yes="true"]').first().click();
     await b.locator('#practice-toggle').click(); await b.locator('#team-code').fill('check'); await click(b, 'Reset this room to the start');
-    await a.waitForFunction(() => !window.auraMockAdapter.ui.created.length, null, { timeout: 6000 });
-    if (Object.values(store(room).world?.identities || {}).some(x => !x.removed && x.name === 'Jimbo')) throw Error('stale identity restored');
-    if (Object.values(store(room).world?.answers || {}).some(x => !x.removed && x.subject === jim && x.rater === 'lena')) throw Error('stale answer restored');
-    for (const page of pages) if (await page.locator('#persona option', { hasText: 'Jimbo ·' }).count()) throw Error('Jimbo remains after reset');
+    await b.locator('#practice-drawer').waitFor({ state: 'hidden', timeout: 6000 });
+    await a.waitForTimeout(2200);
+    await a.waitForFunction(() => !window.auraMockAdapter.ui.answers.some(x => x.rater === 'philip' && x.subject === 'kenji'), null, { timeout: 6000 });
+    await a.locator('#content .answer-slot[data-yes="true"]').first().waitFor({ timeout: 6000 });
+    if (Object.values(store(room).world?.answers || {}).some(x => !x.removed && x.rater === 'philip' && x.subject === 'kenji')) throw Error('stale answer restored');
   });
   const uniqueness = async (page, persona) => { await switchTo(page, persona); await page.selectOption('#domain', 'uniqueness'); };
   const yesThree = async (page, selector) => {
@@ -371,6 +404,19 @@ async function presenceApi(route) {
       return JSON.stringify(window.mergeWorld(a, b)) === JSON.stringify(window.mergeWorld(b, a)) && JSON.stringify(window.mergeWorld(a, a)) === JSON.stringify(a) && before === JSON.stringify([a, b]);
     });
     if (!okay) throw Error('merge is not pure, commutative, and idempotent');
+  });
+  await check('keepAfterReset is pure', async () => {
+    const okay = await pages[0].evaluate(() => {
+      const w = { identities: { rowan: { name: 'Rowan' } }, answers: {
+        real: { rater: 'philip', subject: 'rowan', removed: true },
+        practice: { rater: 'philip', subject: 'kenji', removed: true },
+      }, nodes: { real: { owner: 'rowan' }, practice: { owner: 'rosa' } } };
+      const before = JSON.stringify(w), kept = window.keepAfterReset(w);
+      return JSON.stringify(window.keepAfterReset(kept)) === JSON.stringify(kept) &&
+        before === JSON.stringify(w) && !!kept.answers.real && !kept.answers.practice &&
+        !!kept.nodes.real && !kept.nodes.practice;
+    });
+    if (!okay) throw Error('filter mutates, is not idempotent, or retains practice records');
   });
   console.log(lines.join('\n')); if (errors.length) console.log('FAIL\n- ' + errors.join('\n- '));
   await browser.close(); process.exit(errors.length ? 1 : 0);

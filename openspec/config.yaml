@@ -6,5 +6,5 @@ context: |
 
   Tech: plain HTML/CSS/JS with no build step; Node 20+ serverless functions on Upstash Redis; Playwright checks in checks/.
 
-  All changes go through OpenSpec (explore, propose, apply, archive). BrightID/foundations' how-aura-works.md is the compass: the authoritative description of how BrightID and Aura work. Reference it as a pointer, not via OpenSpec's `references:` mechanism.
+  Changes to what others build on go through OpenSpec (explore, propose, apply, archive): the room server's API contract (api/), the world and data shapes, and the NodeAdapter seam. Screens, wording, layout, demo data and docs land directly once every check passes. BrightID/foundations' how-aura-works.md is the compass: the authoritative description of how BrightID and Aura work. Reference it as a pointer, not via OpenSpec's `references:` mechanism.
 
