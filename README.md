@@ -1,8 +1,14 @@
 # Aura app
 
-A demo of BrightID/Aura's newcomer flows. Interfold node operators get endorsed by players, and in Uniqueness, players, trainers and managers rate each other and get promoted. The app is one HTML file, plus a small server that lets several people share one practice world.
+The Aura app is how people join Aura and vouch for each other. A newcomer makes a key and asks people who know them for an endorsement. Those people answer yes or no, and how sure they are. This repo is a working practice version of the app.
 
-**Nothing here talks to the real BrightID network.** The practice world is invented. The only real names in it are three team members': Philip Silva, Adam Stallard and Auryn.
+It covers two of Aura's domains:
+- **Interfold:** before someone can run an Interfold node, Interfold's players have to endorse them as trustworthy.
+- **Uniqueness:** BrightID's check that each person has only one account. Players, trainers and managers rate each other, and enough Yes answers move someone up a role.
+
+Use it alone in one browser, or with others in a shared room, where each person's asks and answers show up for everyone within seconds.
+
+**None of it touches the real BrightID network.** Everyone in the practice world is invented, except Philip Silva, Adam Stallard and Auryn, who play themselves.
 
 ## Try it
 
