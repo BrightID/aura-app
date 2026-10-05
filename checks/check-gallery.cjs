@@ -76,7 +76,7 @@ const expected = {
             if (sec.dataset.lego === 'RoleChipRow') {
               const chips=[...frame.querySelectorAll('.home-role-chip')];
               const lines=[...new Set(chips.map(x=>Math.round(x.getBoundingClientRect().top)))].map(y=>chips.filter(x=>Math.round(x.getBoundingClientRect().top)===y).length);
-              if (!(lines.length===1 || lines.slice(0,-1).every(n=>n===2) && (lines.at(-1)===2 || chips.length%2===1 && lines.at(-1)===1))) out.push(`${where}: chip lines ${lines}`);
+              const broken=chips.filter(x=>x.scrollWidth>x.clientWidth+1||x.getBoundingClientRect().height>34).map(x=>x.textContent); if (broken.length) out.push(`${where}: chip text breaks: ${broken.join(', ')}`); const row=frame.querySelector('.home-role-chips').getBoundingClientRect(); const ends=[...new Set(chips.map(x=>Math.round(x.getBoundingClientRect().top)))].map(y=>Math.max(...chips.filter(x=>Math.round(x.getBoundingClientRect().top)===y).map(x=>x.getBoundingClientRect().right))); if (lines.length>1 && ends.some(r=>Math.abs(r-row.right)>2)) out.push(`${where}: a wrapped chip line isn't filled`);
             }
             if (sec.dataset.lego === 'AnswerControl') {
               if (frame.dataset.state === 'player unanswered' && [...frame.querySelectorAll('.answer-slot')].map(x => x.getAttribute('aria-label')).join('|') !== 'Yes|No') out.push(`${where}: expected Yes and No`);

@@ -1826,21 +1826,15 @@
     flex-wrap: wrap;
     margin: var(--space-1) 0 var(--space-2);
   }
+  /* Chips never break their words; when they don't fit on one line they wrap,
+     and every chip on a line grows so each line is evenly filled. */
   .home-role-chips {
-    flex-wrap: nowrap;
-  }
-  @media (max-width: 350px) {
-    .home-role-chips:has(> :nth-child(4)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 600px) {
-    .home-role-chips:has(> :nth-child(5)), .home-role-chips:has(> [data-state]:nth-child(4)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .home-role-chips:has(> :nth-child(5)) > :last-child { grid-column: span 2; }
+    flex-wrap: wrap;
   }
   .home-role-chips .home-role-chip {
-    min-width: 0;
+    flex: 1 1 auto;
     justify-content: center;
-    padding-inline: var(--px-4);
-    font-size: var(--px-10);
+    white-space: nowrap;
   }
   .home-role-chip, .home-request-chip {
     --chip-role: var(--role-operator);
@@ -1856,8 +1850,6 @@
     font-weight: 650;
     white-space: nowrap;
   }
-  .gallery-frame[data-chip-count="5"] .home-role-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .gallery-frame[data-chip-count="5"] .home-role-chips > :last-child { grid-column: span 2; }
   .verified-home-card { display: flex; align-items: center; gap: var(--space-2); width: 100%; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
   .verified-mark { color: var(--positive); font-weight: 800; }
   .verified-link { margin-left: auto; color: var(--accent); font-size: var(--type-caption); }
@@ -1938,6 +1930,9 @@
   .role-option .action { width: 100%; }
   .role-option .action:disabled { opacity: .45; cursor: default; }
   .role-option .muted { margin: var(--px-4) 0 0; }
+  .invite-role { display: grid; gap: var(--space-2); border: 0; padding: 0; margin: var(--space-4) 0; }
+  .invite-role legend { font-weight: 700; margin-bottom: var(--space-2); }
+  .invite-role label { display: flex; align-items: center; gap: var(--space-2); min-height: var(--flow-height); cursor: pointer; }
   .answer-slot .slot-label {
     position: relative;
     z-index: 2;
@@ -2091,13 +2086,12 @@
       transition: none !important;
       animation: none !important;
     }
+    /* The undo sweeps stay: they show how long is left to undo, so they aren't decoration. */
     .answer-cover:before {
-      animation: none !important;
-      transform: scaleX(0.5);
+      animation: answer-undo-sweep var(--undo-window) linear forwards !important;
     }
     .send-control.sending:before {
-      animation: none;
-      transform: scaleX(0.5);
+      animation: answer-undo-sweep 1.5s linear forwards !important;
     }
   }
   @media (max-width: 600px) {
@@ -2185,6 +2179,24 @@
   .gallery-token { display: flex; justify-content: space-between; gap: 12px; }
   .gallery-swatch { width: 48px; height: 24px; border-radius: 4px; }
   .gallery-radius { display: inline-block; margin: 4px; padding: 8px; border: 1px solid var(--border); }
+  /* Compact operator answer screen: three questions fit closer together. */
+  .answer-questions .answer-question { padding: var(--space-2) 0; }
+  .answer-questions .answer-question .question-line { margin-bottom: 0; }
+  .answer-questions .answer-question .question-text { margin: 0 0 var(--px-4); }
+  .answer-questions .answer-question .lego-disclosure.compact > summary { min-height: var(--px-26); padding-block: 0; font-size: var(--type-caption); }
+  .answer-questions .answer-question .question-line { min-height: var(--px-30); }
+  .answer-questions .answer-question .question-line .dot-button { min-height: var(--px-30); height: var(--px-30); }
+  .answer-questions .answer-question .vote-list:empty { padding: 0; }
+  .role-word { font-weight: inherit; }
+  .role-word[data-role="player"] { color: var(--role-player); }
+  .role-word[data-role="trainer"] { color: var(--role-trainer); }
+  .role-word[data-role="manager"] { color: var(--role-manager); }
+  .role-word[data-role="operator"] { color: var(--role-operator); }
+  .role-word[data-role="subject"] { color: var(--positive); }
+  .lego-status[data-uniqueness] { margin-left: var(--px-8); }
+  .chip-state-good { color: var(--positive); }
+  .chip-state-bad { color: var(--negative); }
+  .chip-state-wait { color: var(--text-dim); }
 </style>
 <div class="app">
   <header class="app-head">
@@ -2265,7 +2277,7 @@ Minimum version required to store current data is: `+i+`.
 
   (() => {
     "use strict";
-  const BUILD_STAMP = "v32.1 · 2026-10-05 10:35";
+  const BUILD_STAMP = "v32.5 · 2026-10-05 12:44";
     document.getElementById("build-stamp").textContent = BUILD_STAMP.split(" · ")[0];
     document.getElementById("build-stamp").title = BUILD_STAMP;
     // Seed data
@@ -3971,7 +3983,7 @@ Minimum version required to store current data is: `+i+`.
     const SEED = {
       nodes: Object.fromEntries(D.operators.map(([id, count]) => [id, Array.from({ length: count }, (_, i) => ({ address: id + "-node-" + (i + 1), location: nodeSeedLocation(id, i), added: D.times.ratings[i % 3] }))])),
       controlRelationships: { idris: [], viktor: [], ...(demoWorld ? { rosa: ["kenji"] } : {}) },
-      invites: demoWorld ? { "00000000000000000000000000000001": { inviter: "philip", name: "Sam", createdAt: Date.now() - 28 * 60000 } } : {},
+      invites: demoWorld ? { "00000000000000000000000000000001": { inviter: "philip", name: "Sam", role: "operator", createdAt: Date.now() - 28 * 60000 } } : {},
       interfold: {
         ...D,
         seededAnswers,
@@ -4643,7 +4655,7 @@ Minimum version required to store current data is: `+i+`.
         for (const [key, item] of Object.entries(input[part])) {
           if (!plain(item) || key === "__proto__" || key === "constructor" || key === "prototype" || !Number.isFinite(item.updatedAt) || typeof item.by !== "string") continue;
           if (part === "arrivalCodes" && !/^[A-Z0-9]{6}$/.test(key)) continue;
-          if (part === "invites" && (!/^[0-9a-f]{32}$/.test(key) || typeof item.inviter !== "string" || typeof item.name !== "string" || !item.name.trim() || item.name.length > 80 || !Number.isFinite(item.createdAt) || item.claimedBy !== undefined && (typeof item.claimedBy !== "string" || item.claimedBy.length > 80))) continue;
+          if (part === "invites" && (!/^[0-9a-f]{32}$/.test(key) || typeof item.inviter !== "string" || typeof item.name !== "string" || !item.name.trim() || item.name.length > 80 || item.role !== undefined && !["operator", "player"].includes(item.role) || !Number.isFinite(item.createdAt) || item.claimedBy !== undefined && (typeof item.claimedBy !== "string" || item.claimedBy.length > 80))) continue;
           if (part === "identities" && (typeof item.name !== "string" || item.name.length > 80)) continue;
           if (part === "answers" && (typeof item.rater !== "string" || typeof item.subject !== "string" || !["interfold", "uniqueness"].includes(item.domain) || item.role !== undefined && !["subject", "player", "trainer", "manager"].includes(item.role) || !Number.isInteger(item.question) || typeof item.yes !== "boolean" || !Number.isInteger(item.conf) || item.conf < 1 || item.conf > 4 || typeof item.time !== "string")) continue;
           if (part === "outgoing" && (typeof item.from !== "string" || typeof item.to !== "string" || !["interfold", "uniqueness"].includes(item.domain) || item.kind !== undefined && typeof item.kind !== "string" || typeof item.time !== "string")) continue;
@@ -4658,7 +4670,7 @@ Minimum version required to store current data is: `+i+`.
           if (["teamAsked", "nodeAnswered"].includes(part) && typeof item.value !== "string") continue;
           if (part === "arrivalRole" && !["operator", "player", "trainer", "manager"].includes(item.value)) continue;
           if (part === "nameVisibility" && !["private", "players", "shared", "findable"].includes(item.value)) continue;
-          clean[part][key] = item;
+          clean[part][key] = part === "invites" ? { ...item, role: item.role || "operator" } : item;
         }
       }
       return clean;
@@ -5087,6 +5099,10 @@ Minimum version required to store current data is: `+i+`.
     function ChipGroup(prompt, chips) {
       return `<div class="lego-chip-group"><div class="lego-chip-prompt">${esc(prompt)}</div><div class="lego-chip-options">${chips}</div></div>`;
     }
+    // A role name in its role colour, so a row says at a glance what it's about.
+    function RoleWord(role, text) {
+      return `<span class="role-word" data-role="${role}">${text}</span>`;
+    }
     function DenseRow(
       title,
       tail = "",
@@ -5285,7 +5301,6 @@ Minimum version required to store current data is: `+i+`.
         : uniquenessPeople.filter((k) => hasRole(k, "player"));
     }
     function isPlayer() {
-      if (S.playerReady[S.persona]) return true;
       return S.domain === "uniqueness"
         ? hasRole(S.persona, "player")
         : interfoldPlayer(S.persona) ||
@@ -5405,7 +5420,7 @@ Minimum version required to store current data is: `+i+`.
       return result;
     }
     function stateClass(s) {
-      if (s === "Not verified for uniqueness") return "state-dim";
+      if (s === "Not verified unique") return "state-dim";
       return /^(Yes|Seated|Verified|Answered|Rated in|Unique ·|Subject L|Player L|Trainer L|Manager L)/.test(
         s,
       ) || /seated|verified/.test(s) && !/^Not verified/.test(s)
@@ -5469,7 +5484,7 @@ Minimum version required to store current data is: `+i+`.
     }
     function uniquenessSubjectChip(k) {
       const level = api.getVerifications(k, "BrightID")?.categories?.subject?.level;
-      return level ? StatusChip(`Unique · L${level}`) : StatusChip("Not verified for uniqueness");
+      return level ? StatusChip(`Unique · L${level}`, " data-uniqueness") : StatusChip("Not verified unique", " data-uniqueness");
     }
     function subjectStanding(k) {
       let level = realPerson(k)?.levels.subject,
@@ -5579,7 +5594,7 @@ Minimum version required to store current data is: `+i+`.
       return `<div class="setup-line"><span>Shared control · <span>${people.length ? people.map((id) => esc(label(id))).join(", ") : "Just me"}</span></span></div>`;
     }
     function waitingSetup(p) {
-      return `<section class="setup-section"><h2>Your setup</h2><div class="setup-lines">${waitingNodeRows(p)}${waitingControlRows(p)}</div><div class="quiet-line">${nav("Add another node →", "node-address")} · ${nav("Change shared control →", "edit-disclosure")}</div></section>`;
+      return `<section class="setup-section"><h2>Your setup</h2><div class="setup-lines">${waitingNodeRows(p)}${waitingControlRows(p)}</div><div class="quiet-line">${nav("Add another node →", "node-address")} · ${nav("Operators I share control with →", "edit-disclosure")}</div></section>`;
     }
     function waitingAsks(p) {
       return operatorAsked(p).length ? `<section class="asks-section"><h2>Your asks</h2>${waitingLines(p)}</section>` : "";
@@ -5606,11 +5621,14 @@ Minimum version required to store current data is: `+i+`.
     }
     function RoleChipRow(items, interactive = true) {
       return `<div class="home-role-chips" aria-label="Your roles">${items.map(({ role, level, state }) => {
-        const name = role === "operator" ? "Node operator" : role[0].toUpperCase() + role.slice(1);
+        const name = role === "operator" ? "Node operator" : role === "subject" ? "Unique" : role[0].toUpperCase() + role.slice(1);
         const title = `${name}${state ? " · " + state : level ? " L" + level : ""}`;
+        // The state word carries its own colour: seated green, held back red, waiting grey.
+        const stateClass = state === "seated" ? "chip-state-good" : state === "held back" ? "chip-state-bad" : "chip-state-wait";
+        const label = state ? `<span>${esc(name)} · <span class="${stateClass}">${esc(state)}</span></span>` : esc(title);
         return interactive
-          ? `<button type="button" class="home-role-chip" data-role="${role}" ${state ? `data-state="${esc(state)}"` : ""} data-action="show-standing" aria-expanded="${S.standingOpen === role}">${esc(title)}</button>`
-          : `<span class="home-role-chip" data-role="${role}">${esc(title)}</span>`;
+          ? `<button type="button" class="home-role-chip" data-role="${role}" ${state ? `data-state="${esc(state)}"` : ""} data-action="show-standing" aria-expanded="${S.standingOpen === role}">${label}</button>`
+          : `<span class="home-role-chip" data-role="${role}">${label}</span>`;
       }).join("")}</div>`;
     }
     function homeRoleChips(p) {
@@ -5621,16 +5639,16 @@ Minimum version required to store current data is: `+i+`.
       const subjectLevel = api.getVerifications(p, "BrightID")?.categories?.subject?.level;
       if (subjectLevel) items.push({ role: "subject", level: subjectLevel });
       const founder = S.domain === "interfold" && FOUNDING_TEAM.includes(p);
-      if (player) items.push({ role: "player", level: founder ? undefined : levels.player?.level });
-      else if (S.arrivalRole[p] === "player" || S.playerRequests.some((x) => x.from === p && x.domain === S.domain && (!x.role || x.role === "player"))) items.push({ role: "player", state: "getting endorsed" });
-      if (founder || (levels.trainer?.level ?? 0) >= 1) items.push({ role: "trainer", level: founder ? undefined : levels.trainer.level });
-      else if (S.playerRequests.some((x) => x.from === p && x.domain === S.domain && x.role === "trainer")) items.push({ role: "trainer", state: "getting endorsed" });
-      if (founder || (levels.manager?.level ?? 0) >= 1) items.push({ role: "manager", level: founder ? undefined : levels.manager.level });
-      else if (S.playerRequests.some((x) => x.from === p && x.domain === S.domain && x.role === "manager")) items.push({ role: "manager", state: "getting endorsed" });
       if (operator) {
         const ready = api.disclosure.get(p).nodes.length && operatorYes(p) >= 2 && !operatorNo(p);
-        items.push({ role: "operator", state: ready ? undefined : "getting endorsed" });
+        items.push({ role: "operator", state: ready ? "seated" : operatorNo(p) ? "held back" : "getting endorsed" });
       }
+      if (player) items.push({ role: "player", level: S.domain === "uniqueness" ? levels.player?.level : undefined });
+      else if (S.arrivalRole[p] === "player" || S.playerRequests.some((x) => x.from === p && x.domain === S.domain && (!x.role || x.role === "player"))) items.push({ role: "player", state: "getting endorsed" });
+      if (founder || (levels.trainer?.level ?? 0) >= 1) items.push({ role: "trainer", level: S.domain === "uniqueness" ? levels.trainer?.level : undefined });
+      else if (S.playerRequests.some((x) => x.from === p && x.domain === S.domain && x.role === "trainer")) items.push({ role: "trainer", state: "getting endorsed" });
+      if (founder || (levels.manager?.level ?? 0) >= 1) items.push({ role: "manager", level: S.domain === "uniqueness" ? levels.manager?.level : undefined });
+      else if (S.playerRequests.some((x) => x.from === p && x.domain === S.domain && x.role === "manager")) items.push({ role: "manager", state: "getting endorsed" });
       const openAsk = ["trainer", "manager"].map((role) => ({ role, ...api.requests.roleProgress(p, S.domain, role) }))
         .find((x) => x.requests.length && (levels[x.role]?.level ?? 0) < 1);
       return items.length ? `${RoleChipRow(items)}${openAsk ? `<div class="home-ask-progress">${nav(`${openAsk.role[0].toUpperCase() + openAsk.role.slice(1)} ask · ${openAsk.yes} of ${openAsk.required} Yes`, "requests")}</div>` : ""}${S.standingOpen ? `<div class="standing-next">${esc(nextLevelWords(p, S.standingOpen))}</div>` : ""}` : "";
@@ -5673,13 +5691,19 @@ Minimum version required to store current data is: `+i+`.
       return `<div class="home-request-breakdown" aria-label="Requests by kind">${Object.entries(counts).filter(([, count]) => count).map(([role, count]) => `<span class="home-request-chip" data-role="${role}">${count} ${names[role]}${count === 1 ? "" : "s"}</span>`).join("")}</div>`;
     }
     function otherRoleLink(p) {
-      if (S.domain === "interfold" && FOUNDING_TEAM.includes(p) && p !== "auryn")
-        return `<div class="quiet-line"><button class="nav" data-action="switch-to-operator">Also run a node →</button></div>`;
-      return isOperator(p) && isPlayer()
-        ? ""
-        : isOperator(p)
-        ? `<div class="quiet-line"><button class="nav" data-action="switch-to-player">Also play in Interfold →</button></div>`
-        : isPlayer() ? `<div class="quiet-line"><button class="nav" data-action="switch-to-operator">Also run a node →</button></div>` : "";
+      if (S.domain === "uniqueness") return nextAskLink();
+      const links = [];
+      if (!api.disclosure.get(p).nodes.length) links.push('<button class="nav" data-action="switch-to-operator">Also run a node →</button>');
+      if (!FOUNDING_TEAM.includes(p)) {
+        if (!isPlayer()) links.push(isOperator(p) ? '<button class="nav" data-action="switch-to-player">Also play in Interfold →</button>' : nextAskLink());
+        else links.push(nextAskLink());
+      }
+      const roleLinks = links.filter(Boolean).slice(0, 2).map(link => `<div class="quiet-line">${link}</div>`).join("");
+      // Players choose here whether newcomers can find them under "Find a player".
+      const findable = isPlayer() || FOUNDING_TEAM.includes(p)
+        ? `<div class="quiet-line">${nav((visibility(p) === "findable" ? "Newcomers can find you" : "Newcomers can't find you") + " · Change →", "name-visibility")}</div>`
+        : "";
+      return roleLinks + findable;
     }
     function home() {
       const { state: S } = screenModel();
@@ -5695,7 +5719,7 @@ Minimum version required to store current data is: `+i+`.
           : vouchAsks.length
             ? card(`${vouchAsks.length >= 2 ? "<div class=\"done-part\">✓ You've done your part. Now we wait for their vouches.</div>" : ""}<h2 class="ladder-title">You're waiting on vouches</h2><p class="heading-sub">${vouchAsks.length} asked</p><section class="asks-section"><h2>Your asks</h2>${waitingVouchLines(p)}</section><div class="quiet-line">${nav("Ask someone else →", "ask")}</div>`)
             : card(`<div class="home-status">${S.created.includes(p) ? "Not verified yet" : esc(homeStatus(p, S.domain))}</div>${total ? `<div class="request-summary">${total} requests waiting${breakdownChips(p, S.domain)}</div>` : ""}${FlowAction(nav(total ? "Open requests →" : "Ask for a vouch →", total ? "requests" : "ask", "", "primary-link"), true)}`);
-        return `<h1>Hi, ${esc(label(p))}</h1>${homeRoleChips(p)}${promotionNotice}${vouchHome}${uniquenessJourney(p)}${Stack(`${["subject", "player", "trainer", "manager"].some((role) => canRate(role)) ? `<div class="secondary-slot"><button class="action secondary" data-view="rate-someone">Rate someone</button></div>` : ""}<div class="quiet-line">${nextAskLink()}</div>`, "dense", "uniqueness-home-links")}`;
+        return `<h1>Hi, ${esc(label(p))}</h1>${homeRoleChips(p)}${otherRoleLink(p)}${promotionNotice}${vouchHome}${uniquenessJourney(p)}${Stack(`${["subject", "player", "trainer", "manager"].some((role) => canRate(role)) ? `<div class="secondary-slot"><button class="action secondary" data-view="rate-someone">Rate someone</button></div>` : ""}`, "dense", "uniqueness-home-links")}`;
       }
       if (p === "newcomer") return createKey();
       const queue = deriveRequestQueue(p, "interfold");
@@ -5708,15 +5732,15 @@ Minimum version required to store current data is: `+i+`.
       else if (role === "trainer" || role === "manager") row = card(`<h2 class="ladder-title">${role === "trainer" ? "Trainer" : "Manager"}</h2>${FlowAction(nav("Choose a role →", "role-choice", "", "primary-link"), true)}`);
       else if (!role && !nodeCount && !asked.length && !D.operators.some((x) => x[0] === p) && !FOUNDING_TEAM.includes(p)) row = card(`${S.created.includes(p) ? '<p class="home-status">Not verified yet</p>' : ""}<h2 class="ladder-title">What are you here for?</h2>${FlowAction(nav("Choose a role →", "role-choice", "", "primary-link"), true)}`);
       else if ((role === "operator" || D.operators.some((x) => x[0] === p)) && !nodeCount) row = card(`<h2 class="ladder-title">List the nodes you run</h2>${FlowAction(nav("Add a node →", "node-address", "", "primary-link"), true)}${nav("Operators I share control with →", "edit-disclosure")}`);
-      else if (nodeCount && !S.nodesComplete[p] && !controlDone) row = card(`<h2 class="ladder-title">Do you run any other nodes?</h2>${waitingNodeRows(p)}${FlowAction(nav("Continue node list →", "more-nodes", "", "primary-link"), true)}`);
-      else if (nodeCount && !controlDone) row = card(`<h2 class="ladder-title">Who controls your nodes' keys?</h2>${FlowAction(nav("Answer shared control →", "shared-control", "", "primary-link"), true)}`);
+      else if (nodeCount && !S.nodesComplete[p] && !controlDone) row = card(`<h2 class="ladder-title">Do you run any other nodes?</h2>${waitingNodeRows(p)}${FlowAction(nav("Continue node list →", "more-nodes", "", "primary-link"), true)}${nav("Operators I share control with →", "edit-disclosure")}`);
+      else if (nodeCount && !controlDone) row = card(`<h2 class="ladder-title">Who controls your nodes' keys?</h2>${FlowAction(nav("Answer shared control →", "shared-control", "", "primary-link"), true)}${nav("Operators I share control with →", "edit-disclosure")}`);
       else if (no) row = card(`<h2 class="ladder-title state-bad">Held back by a No</h2><p class="heading-sub">${esc(label(no.r))} answered No on ${esc(no.question)}</p>${FlowAction(nav("See answers →", "detail", p, "primary-link"), true)}`);
-      else if (nodeCount && yes >= 2) row = card(`<h2 class="ladder-title">You're all set as a node operator</h2>${ownNodeRows(p)}<div class="quiet-line">${nav("What Interfold sees →", "partner-view")}</div><div class="quiet-line">${nav("Add a node →", "node-address")} · ${nav("Update →", "edit-disclosure")}</div>`);
+      else if (nodeCount && yes >= 2) row = card(`<h2 class="ladder-title">You're all set as a node operator</h2>${ownNodeRows(p)}<div class="quiet-line">${nav("Operators I share control with →", "edit-disclosure")}</div><div class="quiet-line">${nav("What Interfold sees →", "partner-view")}</div><div class="quiet-line">${nav("Add a node →", "node-address")}</div>`);
       else if (nodeCount && asked.length >= 2) row = card(`<div class="done-part">✓ You've done your part. Now we wait for their answers.</div><h2 class="ladder-title">You're waiting on endorsements</h2><p class="heading-sub">${yes} of 2 answered Yes</p>${waitingSetup(p)}${waitingAsks(p)}<div class="quiet-line">${nav("Ask someone else →", "endorse")}</div>`);
       else if (nodeCount) row = card(`<h2 class="ladder-title">Get endorsed</h2><p class="heading-sub">You'll need 2 endorsements to run a node.</p><p>${asked.length} of 2 asked</p>${yes ? `<p>${yes} of 2 answered Yes</p>` : ""}${FlowAction(`<button class="action primary positive-primary" data-view="endorse">Get endorsed →</button>`, true)}`) + card(waitingSetup(p) + waitingAsks(p));
       else if (!FOUNDING_TEAM.includes(p)) row = card(`<h2 class="ladder-title">What are you here for?</h2>${FlowAction(nav("Choose a role →", "role-choice", "", "primary-link"), true)}`);
       const otherRole = otherRoleLink(p);
-      return `<h1>Hi, ${esc(label(p))}</h1>${homeRoleChips(p)}${promotionNotice}${nextAskLink() ? `<div class="quiet-line">${nextAskLink()}</div>` : ""}${isOperator(p) ? `<div class="ladder-step">${step}</div>` : ""}${requestsTop}${row}${!nodeCount && role !== "operator" && !D.operators.some((x) => x[0] === p) ? `<div class="quiet-line">${nav("Operators I share control with →", "edit-disclosure")}</div>` : ""}${otherRole}${canInvite(p) ? `<div class="quiet-line">${nav("Invite someone →", "invite")}</div>` : ""}`;
+      return `<h1>Hi, ${esc(label(p))}</h1>${homeRoleChips(p)}${otherRole}${promotionNotice}${isOperator(p) ? `<div class="ladder-step">${step}</div>` : ""}${requestsTop}${row}${canInvite(p) ? `<div class="quiet-line">${nav("Invite someone →", "invite")}</div>` : ""}`;
     }
     function partnerView() {
       const p = S.persona;
@@ -5972,9 +5996,9 @@ Minimum version required to store current data is: `+i+`.
       let playerHtml = playerRows.map((x) => {
         if (x.completed) {
           const record = S.answers.find((a) => a.domain === S.domain && a.subject === x.from && a.rater === p && a.role === "player");
-          return `<div class="player-answer-unit">${DenseRow(esc(label(x.from)), StatusChip("Answered"), "Wants to be a player · " + age(x.time))}<div class="ask-question">Should this person be a player?</div>${AnswerControl("player", x.from, 0, record)}</div>`;
+          return `<div class="player-answer-unit">${DenseRow(esc(label(x.from)), StatusChip("Answered"), "Wants to be a " + RoleWord("player", "player") + " · " + age(x.time))}<div class="ask-question">Should this person be a player?</div>${AnswerControl("player", x.from, 0, record)}</div>`;
         }
-        return `<div class="player-answer-unit" data-request-row-status="${esc(x.status)}">${DenseRow(esc(label(x.from)), "", "Wants to be a player · " + questionLabel(questionCount("player")) + " · " + age(x.time))}<div class="ask-question">Should this person be a player?</div>${AnswerControl("player", x.from, 0, null)}</div>`;
+        return `<div class="player-answer-unit" data-request-row-status="${esc(x.status)}">${DenseRow(esc(label(x.from)), "", "Wants to be a " + RoleWord("player", "player") + " · " + questionLabel(questionCount("player")) + " · " + age(x.time))}<div class="ask-question">Should this person be a player?</div>${AnswerControl("player", x.from, 0, null)}</div>`;
       }).join("");
       const sentKinds = [...new Set(outgoing.map((x) => x.request))];
       let sentHtml = sentKinds.map((kind) => {
@@ -5987,20 +6011,20 @@ Minimum version required to store current data is: `+i+`.
           const answer = S.answers.find(a => a.domain === S.domain && a.subject === p && a.rater === x.to && a.role === kind);
           return answer ? answer.yes ? "Yes" : "No" : ["waiting", "Sent", "Pending"].includes(x.status) ? "Waiting" : x.status === "Rated in" || x.status === "Yes" ? "Yes" : "No";
         });
-        const title = ({ ask: u ? "Vouch ask" : "Node operator ask", team: "Node operator ask", player: "Player ask", trainer: "Trainer ask", manager: "Manager ask" })[kind] || "Ask";
+        const title = ({ ask: u ? RoleWord("subject", "Vouch") + " ask" : RoleWord("operator", "Node operator") + " ask", team: RoleWord("operator", "Node operator") + " ask", player: RoleWord("player", "Player") + " ask", trainer: RoleWord("trainer", "Trainer") + " ask", manager: RoleWord("manager", "Manager") + " ask" })[kind] || "Ask";
         return `<details class="sent-kind" data-request-group="sent-${kind}"${localStorage.getItem(requestGroupKey(`sent-${kind}`)) === "closed" ? "" : " open"}><summary><h3>${title} · ${asks.length}</h3><span class="group-chevron" aria-hidden="true"></span></summary><div class="request-group"><p class="sent-progress">${answered.filter((x) => x === "Yes").length} of ${asks.length} Yes</p>${asks.map((x, i) => { const rating = S.answers.find(a => a.domain === S.domain && a.subject === p && a.rater === x.to && a.role === kind); return DenseRow(esc(x.to === "team" ? "Interfold team" : x.to.startsWith("link:") ? "Someone you sent a link to" : label(x.to)), StatusChip(answered[i]), `${title} · ${age(x.time)}${["trainer", "manager"].includes(kind) ? " · " + esc(label(x.to)) + " · " + answered[i] + (answered[i] === "Waiting" ? "" : " · " + esc(rating?.conf || x.conf || 1)) : ""}`, "sent-ask-detail", encodeURIComponent(JSON.stringify([kind, x.to]))); }).join("")}</div></details>`;
       }).join("");
       let trainerHtml = [...queue.trainer].sort((a, b) => b.time.localeCompare(a.time)).map((x) => {
         const record = S.answers.find((a) => a.domain === S.domain && a.subject === x.from && a.rater === p && a.role === "trainer");
-        return `<div class="player-answer-unit" data-request-row-status="${esc(x.status)}">${DenseRow(esc(label(x.from)), record ? StatusChip("Answered") : "", "Wants to be a trainer · " + age(x.time))}<div class="ask-question">Should this person be a trainer?</div>${AnswerControl("trainer", x.from, 0, record)}</div>`;
+        return `<div class="player-answer-unit" data-request-row-status="${esc(x.status)}">${DenseRow(esc(label(x.from)), record ? StatusChip("Answered") : "", "Wants to be a " + RoleWord("trainer", "trainer") + " · " + age(x.time))}<div class="ask-question">Should this person be a trainer?</div>${AnswerControl("trainer", x.from, 0, record)}</div>`;
       }).join("");
       const requestSection = (title, body, role) => body ? RequestGroup(`incoming-${role}`, title, role === "player" ? playerRows.length : role === "trainer" ? queue.trainer.length : role === "manager" ? incoming.filter(x => x.type === "manager").length : incoming.filter(x => x.type !== "manager").length, body, `section request-section role-${role}`) : "";
       const questionHtml = incoming.filter((x) => x.type !== "manager").map((x) => DenseRow(esc(label(x.from)), '<span class="request-row-tail">' + StatusChip(x.status) + '<span class="chevron">›</span></span>', (u ? "Asked for a vouch" : "Asked you") + " · " + questionLabel(questionCount(x.type)) + " · " + age(x.time) + (!u ? cells(x.from) + uniquenessSubjectChip(x.from) : ""), "answer", x.from, "", x.status)).join("");
-      const managerHtml = incoming.filter((x) => x.type === "manager").map((x) => DenseRow(esc(label(x.from)), StatusChip(x.status), "Wants to be a manager · " + age(x.time), "answer", x.from + ":manager", "", x.status)).join("");
+      const managerHtml = incoming.filter((x) => x.type === "manager").map((x) => DenseRow(esc(label(x.from)), StatusChip(x.status), "Wants to be a " + RoleWord("manager", "manager") + " · " + age(x.time), "answer", x.from + ":manager", "", x.status)).join("");
       const ownedInvites = Object.entries(S.invites).filter(([, x]) => x.inviter === p);
-      const inviteRows = !u ? ownedInvites.map(([token, x]) => DenseRow(x.claimedBy ? `${esc(x.name)} · ${Math.min(2, operatorAsked(x.claimedBy).length)} of 2 asked` : `Invite · ${esc(x.name)} · not opened yet`, "›", "", "invite-detail", token)).join("") : "";
+      const inviteRows = !u ? ownedInvites.map(([token, x]) => DenseRow(`Invite · ${esc(x.name)} · as ${RoleWord(x.role === "player" ? "player" : "operator", x.role === "player" ? "player" : "node operator")}`, "›", x.claimedBy ? "used" : "not opened yet", "invite-detail", token)).join("") : "";
       const invitesHtml = "";
-      const deferredRow = (x, ignored = false) => `<div>${PersonRow(x.from, (x.type === "player" ? "Wants to be a player" : x.type === "trainer" ? "Rate as trainer" : u ? "Asked for a vouch" : "Asked you") + " · " + Ago(x.time), ignored
+      const deferredRow = (x, ignored = false) => `<div>${PersonRow(x.from, (x.type === "player" ? "Wants to be a " + RoleWord("player", "player") : x.type === "trainer" ? "Rate as trainer" : u ? "Asked for a vouch" : "Asked you") + " · " + Ago(x.time), ignored
         ? `<button class="nav" data-action="unignore" data-subject="${esc(x.from)}">Un-ignore</button>`
         : '<span class="chevron">›</span>', ignored ? "" : "answer", x.from + (x.type === "player" ? ":player" : x.type === "trainer" ? ":trainer" : ""), ignored ? "" : "Later")}</div>`;
       const laterHtml = queue.later.length ? `<section class="section"><h2>Later</h2>${queue.later.map((x) => deferredRow(x)).join("")}</section>` : "";
@@ -6441,7 +6465,7 @@ Minimum version required to store current data is: `+i+`.
     function invite() {
       if (!canInvite(S.persona)) return `<h1>Invite someone</h1><p>Sign in as an Interfold player to invite someone.</p>`;
       return flowShell(
-        `<div class="back">${nav("← Back", "back")}</div><h1>Invite someone</h1>${InputField("invite-name", "Their name", "", "", 'maxlength="80" required')}`,
+        `<div class="back">${nav("← Back", "back")}</div><h1>Invite someone</h1>${InputField("invite-name", "Their name", "", "", 'maxlength="80" required')}<fieldset class="invite-role"><legend>Invite them as</legend><label><input type="radio" name="invite-role" value="operator" checked> Node operator</label><label><input type="radio" name="invite-role" value="player"> Player</label></fieldset>`,
         S.creatingInvite ? '<button class="action primary" disabled>Creating…</button>' : action("Create invite", "create-invite", "primary"),
       );
     }
@@ -6453,7 +6477,7 @@ Minimum version required to store current data is: `+i+`.
       target.search = `${sharedRoom ? `?room=${encodeURIComponent(sharedRoom)}&` : "?"}invite=${S.detail}`;
       target.hash = "";
       const url = target.href;
-      return `<div class="back">${nav("← Back", "back")}</div><h1>Invite someone</h1>${card(`<p>${esc(x.name)} · ${x.claimedBy ? "used" : "not opened yet"}</p><span class="url" id="invite-url">${esc(url)}</span><div class="arrival-qr"><img id="arrival-qr-image" alt="QR code for invite" data-qr-url="${esc(url)}"></div><div class="actions">${action("Copy", "copy-invite")}${action("Share", "share-invite")}</div>`)}`;
+      return `<div class="back">${nav("← Back", "back")}</div><h1>Invite someone</h1>${card(`<p>Invite · ${esc(x.name)} · as ${RoleWord(x.role === "player" ? "player" : "operator", x.role === "player" ? "player" : "node operator")}</p><p>${x.claimedBy ? "used" : "not opened yet"}</p><span class="url" id="invite-url">${esc(url)}</span><div class="arrival-qr"><img id="arrival-qr-image" alt="QR code for invite" data-qr-url="${esc(url)}"></div><div class="actions">${action("Copy", "copy-invite")}${action("Share", "share-invite")}</div>`)}`;
     }
 
     function readRow(title, v, k = "", i = 0) {
@@ -7032,6 +7056,12 @@ Minimum version required to store current data is: `+i+`.
         .getElementById("practice-toggle")
         .setAttribute("aria-expanded", "false");
     }
+    // A tap anywhere outside the open Practice panel closes it.
+    document.addEventListener("pointerdown", (e) => {
+      const drawer = document.getElementById("practice-drawer");
+      if (drawer.hidden || drawer.contains(e.target) || e.target.closest("#practice-toggle")) return;
+      closeDrawer();
+    }, true);
     function resetPractice() {
       Object.values(S.pendingAnswers).forEach((x) => x.op?.undo());
       S.pendingAnswers = {};
@@ -7181,7 +7211,9 @@ Minimum version required to store current data is: `+i+`.
       if (a === "switch-to-operator") {
         const previousFlow = S.flow;
         S.flow = "operator";
-        go("role-choice");
+        S.arrivalRole[S.persona] = "operator";
+        commitWorld();
+        go("node-address");
         S.history.at(-1).flow = previousFlow;
         return;
       }
@@ -7446,10 +7478,11 @@ Minimum version required to store current data is: `+i+`.
               } else if (invite.claimedBy) { S.activeInvite = null; S.inviteNotice = "This invite was already used"; S.view = "sign-in-flow"; render(); return; }
               freshIdentity(name, id);
               S.invites[token].claimedBy = id;
-              S.outgoing.push({ from: id, to: invite.inviter, domain: "interfold", kind: "endorsement", time: new Date().toISOString() });
+              if (invite.role === "player") S.playerRequests.push({ from: id, to: invite.inviter, domain: "interfold", role: "player", time: new Date().toISOString(), status: "waiting" });
+              else S.outgoing.push({ from: id, to: invite.inviter, domain: "interfold", kind: "endorsement", time: new Date().toISOString() });
               S.nameGrants.push({ viewer: invite.inviter, person: id });
-              S.arrivalRole[id] = "operator"; S.activeInvite = null; S.inviteNotice = "";
-              commitWorld(); go("node-address", null, false, "✓ Welcome, " + name);
+              S.arrivalRole[id] = invite.role === "player" ? "player" : "operator"; S.flow = S.arrivalRole[id]; S.activeInvite = null; S.inviteNotice = "";
+              commitWorld(); go(invite.role === "player" ? "player-trainer" : "node-address", null, false, "✓ Welcome, " + name);
             } catch (error) { b.disabled = false; b.textContent = "Create your passkey"; toast("Could not claim invite · try again"); }
           })();
           return;
@@ -7610,7 +7643,7 @@ Minimum version required to store current data is: `+i+`.
         const input = document.getElementById("invite-name"), name = input.value.trim();
         if (!name || name.length > 80) { input.focus(); toast("Enter their name (80 characters or fewer)"); return; }
         const token = Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join("");
-        S.invites[token] = { inviter: S.persona, name, createdAt: Date.now() };
+        S.invites[token] = { inviter: S.persona, name, role: document.querySelector('input[name="invite-role"]:checked')?.value === "player" ? "player" : "operator", createdAt: Date.now() };
         S.creatingInvite = true;
         const inviteGeneration = generation;
         commitWorld(); render();

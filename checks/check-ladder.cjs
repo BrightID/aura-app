@@ -23,7 +23,7 @@ const doc = fs.readFileSync(FILE,'utf8');
   await check('No passkey → Create your passkey', async () => { await open('newcomer'); await has('Create your passkey'); await has('Stuck? Any Aura player can help you set one up.'); await has('I already have one → Sign in'); });
   await check('Solo makes no world request or shared header', async () => { if (worldRequests) throw Error('world request in solo mode'); if (await page.locator('#shared-header:visible').count() || (await page.locator('header').innerText()).includes('Room ·')) throw Error('shared header in solo mode'); });
   await check('Solo invite shows a link and QR', async () => { await home('philip'); await click('Invite someone →'); await page.locator('#invite-name').fill('Rowan'); await click('Create invite'); await page.locator('#invite-url').waitFor(); await page.locator('#arrival-qr-image[src^="data:image/png"]').waitFor(); if (!/\?invite=[0-9a-f]{32}$/.test(await page.locator('#invite-url').innerText())) throw Error('invalid solo invite link'); if ((await page.locator('body').innerText()).includes('Invite an operator')) throw Error('old invite label remains'); });
-  await check('Not verified uniqueness chip is dim', async () => { await home('lena'); await click('Requests'); await page.locator('.request-section.role-operator [data-view="answer"]', { hasText: 'Leo' }).first().click(); const chip = page.locator('#content .lego-status', { hasText: 'Not verified for uniqueness' }).first(); await chip.waitFor(); if (await chip.evaluate(el => el.classList.contains('state-bad') || !el.classList.contains('state-dim'))) throw Error('chip is not dim'); });
+  await check('Not verified uniqueness chip is dim', async () => { await home('lena'); await click('Requests'); await page.locator('.request-section.role-operator [data-view="answer"]', { hasText: 'Leo' }).first().click(); const chip = page.locator('#content .lego-status', { hasText: 'Not verified unique' }).first(); await chip.waitFor(); if (await chip.evaluate(el => el.classList.contains('state-bad') || !el.classList.contains('state-dim'))) throw Error('chip is not dim'); });
   await check('Passkey, no role → What are you here for?', async () => { await home('mira'); await has('What are you here for?'); });
   await check('Role is saved on the step’s primary action', async () => { await home('mira'); await click('Choose a role →'); await click('Interfold node operator'); await has('Your main node’s public address'); await click('← Back'); await has('What are you here for?'); await click('← Back'); await has('Choose a role →'); await click('Choose a role →'); await click('Interfold node operator'); await page.fill('#node-address','https://node.mira.example'); await click('Check my node'); await page.getByRole('heading', { name: 'Do you run any other nodes?' }).waitFor(); await click("No, that's all"); await page.getByRole('heading', { name: "Who controls your nodes' keys?" }).waitFor(); await click('Home'); await has('Answer shared control →'); });
   await check('Operator, node listed, fewer than 2 asked', async () => { await home('auryn'); await page.getByRole('heading', { name: 'Get endorsed', exact: true }).waitFor(); await has('0 of 2 asked'); if (await page.locator('#content button.primary').count() !== 1 || !await page.getByRole('button', { name: 'Get endorsed →', exact: true }).count()) throw Error('zero ask Home must have one Get endorsed primary'); });
@@ -47,7 +47,7 @@ const doc = fs.readFileSync(FILE,'utf8');
   await check('Two unanswered asks show a calm Home', async () => { const card = page.locator('#content .card', { has: page.getByRole('heading', { name: "You're waiting on endorsements" }) }); await card.getByText("✓ You've done your part. Now we wait for their answers.", { exact: true }).waitFor(); if (await card.locator('.lego-status', { hasText: /^Waiting$/ }).count() !== 2) throw Error('expected two Waiting chips'); if (await card.locator('.primary-link, .flow-action-bar').count()) throw Error('waiting card has a primary action'); await card.getByRole('button', { name: 'Ask someone else →', exact: true }).waitFor(); await card.getByText('Just me', { exact: true }).waitFor(); });
   await check('Waiting node opens detail and Back returns Home', async () => { await page.locator('#content .lego-dense-row[data-view="node-detail"]').first().click(); await page.getByRole('heading', { name: 'Node detail' }).waitFor(); await has('https://node.mira.example'); await has('Hetzner · Helsinki'); await click('← Back'); await page.getByRole('heading', { name: "You're waiting on endorsements" }).waitFor(); });
   await check('Arrival link opens Answer', async () => { await click('Ask someone else →'); await click('Send them a link'); await page.locator('.share-message a').click(); if (await page.locator('#content select, #content .tag').count()) throw Error('passkey chooser must stay off the first screen'); if (await page.locator('#content .flow-action-bar .primary').count() !== 1) throw Error('expected one primary sign-in button'); await click('Sign in with your passkey'); await page.getByRole('dialog', { name: 'Choose a passkey' }).getByRole('button', { name: 'Lena' }).click(); await page.getByText('Answer Mira').waitFor(); });
-  await check('Lena’s role is saved on the step’s primary action', async () => { await home('lena'); await click('Also run a node →'); await click('Interfold node operator'); await has('Your main node’s public address'); await click('← Back'); await has('What are you here for?'); await click('Home'); await has('Hi, Lena'); await has('Also run a node →'); });
+  await check('Lena’s node shortcut opens the address step', async () => { await home('lena'); await click('Also run a node →'); await has('Your main node’s public address'); await click('← Back'); await has('Hi, Lena'); await click('Home'); await has('Also run a node →'); });
   await check('Mira switches from operator Home to player flow and back', async () => { await home('mira'); await click('Choose a role →'); await click('Interfold node operator'); await page.fill('#node-address', 'https://node.mira.switch.example'); await click('Check my node'); await page.getByRole('heading', { name: 'Do you run any other nodes?' }).waitFor(); await click("No, that's all"); await page.getByRole('heading', { name: "Who controls your nodes' keys?" }).waitFor(); await click('Just me'); await has('Shared control ✓'); const before = await page.locator('#content .ladder-step').innerText(); await click('Also play in Interfold →'); await page.getByRole('heading', { name: 'Get endorsed as a player' }).waitFor(); await click('← Back'); await has('Hi, Mira'); if (await page.locator('#content .ladder-step').innerText() !== before || !await page.getByRole('button', { name: 'Get endorsed →', exact: true }).count()) throw Error('operator progress changed after Back'); });
   await check('Roles appear only when held', async () => { await open('newcomer'); await page.fill('#identity-name','New arrival'); await click('Create your passkey'); await has('What are you here for?'); for (const name of ['Trainer','Manager']) if (await page.getByRole('button', { name, exact: true }).count()) throw Error(name + ' is visible to newcomer'); for (const hint of ['Be a player first','Be a trainer first']) if (await page.getByText(hint).count()) throw Error(hint + ' is visible'); await open('lena','role-choice'); if (!await page.getByRole('button', { name: 'Trainer', exact: true }).count()) throw Error('Lena cannot see Trainer'); if (await page.getByRole('button', { name: 'Manager', exact: true }).count()) throw Error('Lena can see Manager'); await open('nora','role-choice'); for (const name of ['Trainer','Manager']) if (!await page.getByRole('button', { name, exact: true }).count()) throw Error('Nora cannot see ' + name); });
   await check('Back follows each arrival step', async () => { await home('mira'); await click('Choose a role →'); await click('Interfold node operator'); await click('← Back'); await has('What are you here for?'); await click('Interfold node operator'); await page.fill('#node-address','https://node.back.example'); await click('Check my node'); await page.getByRole('heading', { name: 'Do you run any other nodes?' }).waitFor(); await click("No, that's all"); await page.getByRole('heading', { name: "Who controls your nodes' keys?" }).waitFor(); await click('← Back'); await has('Do you run any other nodes?'); await click('← Back'); await has('Your main node’s public address'); await click('Home'); await has('Hi, Mira'); });
@@ -238,7 +238,7 @@ const doc = fs.readFileSync(FILE,'utf8');
     await open('adam'); await page.selectOption('#domain', 'uniqueness'); await click('Home');
     const row = page.locator('#content .home-role-chips');
     if (await row.count() !== 1) throw Error('expected one role row');
-    for (const name of ['Subject L4', 'Player L3', 'Trainer L2', 'Manager L2']) if (await row.getByText(name, { exact: true }).count() !== 1) throw Error('missing ' + name);
+    for (const name of ['Unique L4', 'Player L3', 'Trainer L2', 'Manager L2']) if (await row.getByText(name, { exact: true }).count() !== 1) throw Error('missing ' + name);
     const tops = await row.locator('.home-role-chip').evaluateAll(xs => xs.map(x => Math.round(x.getBoundingClientRect().top)));
     const counts = [...new Set(tops)].map(y => tops.filter(x => x === y).length);
     if (!(counts.length === 1 || counts.length === 2 && counts.every(n => n === 2))) throw Error('uneven chip lines ' + counts);
@@ -260,7 +260,7 @@ const doc = fs.readFileSync(FILE,'utf8');
   await check('Interfold operator answer shows Uniqueness status', async () => {
     await open('lena'); await click('Requests');
     await page.locator('.request-section.role-operator [data-view="answer"]').first().click();
-    if (!await page.locator('#content .lego-status').filter({ hasText: /Unique ·|Not verified for uniqueness/ }).count()) throw Error('operator uniqueness chip missing');
+    if (!await page.locator('#content .lego-status').filter({ hasText: /Unique ·|Not verified unique/ }).count()) throw Error('operator uniqueness chip missing');
   });
   await check('Try as header follows the selected role', async () => {
     await open('auryn'); await page.selectOption('#domain', 'uniqueness'); await click('Home');
@@ -305,6 +305,50 @@ const doc = fs.readFileSync(FILE,'utf8');
     for (const name of ['Philip', 'Adam']) await page.locator('.sent-answer-person', { has: page.getByRole('heading', { name, exact: true }) }).getByText('Waiting').waitFor();
     if (await page.locator('.sent-answer-question').count() !== 2) throw Error('recipient questions missing');
     await click('← Back'); await page.getByRole('heading', { name: 'Requests', exact: true }).waitFor();
+  });
+  await check('Chips belong to the selected domain', async () => {
+    await home('lena');
+    let row = page.locator('#content .home-role-chips');
+    if (/\b(?:Player|Trainer|Manager) L\d/.test(await row.innerText())) throw Error('Uniqueness levels leaked into Lena’s Interfold roles');
+    await home('philip');
+    row = page.locator('#content .home-role-chips');
+    for (const name of ['Unique L4', 'Player', 'Trainer', 'Manager']) if (!await row.getByRole('button', { name, exact: true }).count()) throw Error('Philip missing Interfold ' + name);
+    await page.selectOption('#domain', 'uniqueness'); await click('Home');
+    row = page.locator('#content .home-role-chips');
+    for (const name of ['Unique L4', 'Player L3', 'Trainer L2', 'Manager L2']) if (!await row.getByRole('button', { name, exact: true }).count()) throw Error('Philip missing Uniqueness ' + name);
+  });
+  await check('Every persona keeps domain roles separate', async () => {
+    await home('philip');
+    const people = await page.locator('#persona option').evaluateAll(options => options.map(option => option.value).filter(Boolean));
+    for (const who of people) {
+      await home(who);
+      const interfold = await page.locator('#content .home-role-chips').count() ? await page.locator('#content .home-role-chips').innerText() : '';
+      if (/\b(?:Player|Trainer|Manager) L\d/.test(interfold)) throw Error(who + ' has Uniqueness levels in Interfold');
+      await page.selectOption('#domain', 'uniqueness'); await click('Home');
+      if (await page.locator('#content .home-role-chip[data-role="operator"]').count()) throw Error(who + ' has Interfold operator in Uniqueness');
+    }
+  });
+  await check('Also run a node opens its address step', async () => {
+    await home('philip'); await click('Also run a node →');
+    await has('Your main node’s public address');
+    if ((await page.locator('#content').innerText()).includes('What are you here for?')) throw Error('role choice appeared');
+  });
+  await check('Shared control stays with node operators', async () => {
+    await home('lena');
+    if ((await page.locator('#content').innerText()).includes('Operators I share control with')) throw Error('non-operator has shared control link');
+    await home('viktor');
+    await has('Operators I share control with →');
+  });
+  await check('Player invite creates the inviter’s player ask', async () => {
+    await home('philip'); await click('Invite someone →'); await page.locator('#invite-name').fill('Rowan');
+    await page.getByRole('radio', { name: 'Player' }).check(); await click('Create invite');
+    await has('Invite · Rowan · as player');
+    const link = (await page.locator('#invite-url').innerText()).trim();
+    await page.goto(link); if (await page.locator('#identity-name').inputValue() !== 'Rowan') throw Error('invite name was lost');
+    await click('Create your passkey'); await has('Get endorsed as a player');
+    await switchPerson('philip'); await click('Requests');
+    await page.locator('.request-section.role-player', { hasText: 'Rowan' }).getByText('Wants to be a player').waitFor();
+    await has('Invite · Rowan · as player');
   });
   console.log(lines.join('\n')); if (failures.length) console.log('FAIL\n- ' + failures.join('\n- '));
   await browser.close(); process.exit(failures.length ? 1 : 0);

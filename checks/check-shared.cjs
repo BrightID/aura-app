@@ -145,7 +145,7 @@ async function presenceApi(route) {
   await check('Invite name XSS is inert', async () => {
     const room = fresh(), attack = '<img src=x onerror=window.__x=1>', token = 'a'.repeat(32), state = store(room);
     state.version = 1; state.world = { invites: { [token]: { inviter: 'philip', name: attack, createdAt: Date.now(), updatedAt: Date.now(), by: 'philip' } } };
-    const [a, b] = pages; await open(a, room); await switchTo(a, 'philip'); await click(a, 'Requests'); await a.getByText(`Invite · ${attack} · not opened yet`).waitFor({ timeout: 6000 });
+    const [a, b] = pages; await open(a, room); await switchTo(a, 'philip'); await click(a, 'Requests'); await a.getByText(`Invite · ${attack} · as node operator`).waitFor({ timeout: 6000 });
     await b.goto(`http://mock.test/?room=${room}&invite=${token}`); await b.locator('#identity-name').waitFor({ timeout: 6000 });
     if (await b.locator('#identity-name').inputValue() !== attack || await a.evaluate(() => window.__x) || await b.evaluate(() => window.__x)) throw Error('invite name executed or was lost');
   });
@@ -157,7 +157,7 @@ async function presenceApi(route) {
     await click(a, 'Requests');
     for (const name of ['Kenji', 'Rosa']) await a.locator('.request-section.role-operator', { hasText: name }).waitFor();
     for (const name of ['Kenji', 'Rosa']) if (/Seated/.test(await a.locator('.request-section.role-operator .lego-dense-row', { hasText: name }).first().innerText())) throw Error(name + ' is already seated in the demo');
-    await a.getByText('Invite · Sam · not opened yet').waitFor();
+    await a.getByText('Invite · Sam · as node operator').waitFor();
     await a.locator('.request-section.role-operator .lego-dense-row', { hasText: 'Rosa' }).first().click();
     await a.getByText('3 nodes', { exact: false }).waitFor(); await a.locator('.answer-profile summary').click(); await a.getByText('Shares control with this operator').waitFor();
     if (await a.locator('#content .answer-slot[data-yes="true"]').count() !== 3) throw Error('Rosa questions lack answer controls');
@@ -187,7 +187,7 @@ async function presenceApi(route) {
           if (id === 'philip' && domain === 'interfold' && view === 'Requests') {
             const rosa = await b.locator('.request-section.role-operator .lego-dense-row', { hasText: 'Rosa' }).first().innerText();
             const kenji = await b.locator('.request-section.role-operator .lego-dense-row', { hasText: 'Kenji' }).first().innerText();
-            if (!rosa.includes('Unique · L2') || !kenji.includes('Not verified for uniqueness')) throw Error('operator uniqueness contrast missing');
+            if (!rosa.includes('Unique · L2') || !kenji.includes('Not verified unique')) throw Error('operator uniqueness contrast missing');
           }
         }
       }
@@ -218,7 +218,7 @@ async function presenceApi(route) {
     await kenji.click();
     await b.locator('#content .answer-slot[data-yes="true"]').first().waitFor({ timeout: 6000 });
     await click(b, 'Requests');
-    if (await b.getByText('Invite · Sam · not opened yet').count() !== 1) throw Error('Sam invite not restored once');
+    if (await b.getByText('Invite · Sam · as node operator').count() !== 1) throw Error('Sam invite not restored once');
     for (const page of pages) if (!await page.locator('#persona optgroup[label="New on this call"] option', { hasText: 'Rowan ·' }).count()) throw Error('Rowan absent from picker');
     if (!Object.values(store(room).world.nodes || {}).some(x => !x.removed && x.owner === rowan)) throw Error('Rowan node was lost');
     if (Object.values(store(room).world.answers || {}).some(x => !x.removed && x.rater === 'philip' && x.subject === 'kenji')) throw Error('Kenji answer survived');
@@ -265,7 +265,7 @@ async function presenceApi(route) {
   });
   await check('Conflicting control additions both remain', async () => {
     const room = fresh(), [a, b] = pages; await Promise.all(pages.map(p => open(p, room)));
-    for (const page of pages) { await switchTo(page, 'mira'); await click(page, 'Home'); await click(page, 'Operators I share control with →'); }
+    for (const page of pages) { await switchTo(page, 'mira'); await click(page, 'Home'); await click(page, 'Also run a node →'); await click(page, 'Home'); await click(page, 'Operators I share control with →'); }
     const version = store(room).version, before = conflicts; let release; const promise = new Promise(resolve => { release = resolve; });
     barrier = { room, version, promise, release, arrived: 0 };
     await Promise.all([[a, 'Lena'], [b, 'Nora']].map(async ([page, name]) => { await page.locator('#control-relationships').fill(name); await click(page, 'Save disclosure'); }));
