@@ -2,7 +2,7 @@ schema: spec-driven
 
 # Project context: shown to AI when creating artifacts.
 context: |
-  This is BrightID/aura-app: a demo of the Aura newcomer flows. A one-file HTML/JS front end (index.html) plus a small Vercel server (api/) that lets everyone in a room share one practice world. Today everything is a practice world; nothing talks to the real BrightID network yet. The next step is a per-capability switch from practice to live.
+  This is BrightID/vouch-app: an experimental Vouch App (how people join Aura and vouch for each other), on practice data. A one-file HTML/JS front end (index.html) plus a small Vercel server (api/) that lets everyone in a room share one practice world. Today everything is a practice world; nothing talks to the real BrightID network yet. The next step is a per-capability switch from practice to live.
 
   Tech: plain HTML/CSS/JS with no build step; Node 20+ serverless functions on Upstash Redis; Playwright checks in checks/.
 

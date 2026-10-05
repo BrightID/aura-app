@@ -1,11 +1,11 @@
 {
-  "name": "aura-app",
+  "name": "vouch-app",
   "version": "0.1.0",
   "private": true,
-  "description": "Demo of BrightID/Aura's newcomer flows: a one-file app plus a shared practice server.",
+  "description": "Vouch App: how people join BrightID/Aura and vouch for each other, on practice data.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/BrightID/aura-app"
+    "url": "https://github.com/BrightID/vouch-app"
   },
   "license": "MIT",
   "type": "module",

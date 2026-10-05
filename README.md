@@ -1,6 +1,6 @@
-# Aura app
+# Vouch App
 
-The Aura app is how people join Aura and vouch for each other. A newcomer makes a key and asks people who know them for an endorsement. Those people answer yes or no, and how sure they are. This repo is a working practice version of the app.
+The Vouch App is how people join Aura and vouch for each other. A newcomer makes a key and asks people who know them for an endorsement. Those people answer yes or no, and how sure they are. This repo is an experimental version you can use today, on practice data.
 
 It covers two of Aura's domains:
 - **Interfold:** before someone can run an Interfold node, Interfold's players have to endorse them as trustworthy.
