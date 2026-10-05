@@ -8,12 +8,12 @@ It covers two of Aura's domains:
 
 Use it alone in one browser, or with others in a shared room, where each person's asks and answers show up for everyone within seconds.
 
-**None of it touches the real BrightID network.** Everyone in the practice world is invented, except Philip Silva, Adam Stallard and Auryn, who play themselves.
+**None of it touches the real BrightID network.** Everyone in the practice world is invented, except Philip, Adam and Auryn, who play themselves.
 
 ## Try it
 
 - **Solo:** open `index.html` in a browser. Each browser keeps its own practice world.
-- **Shared:** run `npm install`, then `TEAM_CODE=local npm run serve`, and open `http://localhost:4811/?room=demo` in two browsers. Both see one world. A room name is 3 to 40 lowercase letters, digits or dashes. `TEAM_CODE` is the code the side drawer asks for when you reset a room. A shared room starts with some activity already waiting for Philip Silva, Adam Stallard and Auryn, so a demo has something to answer.
+- **Shared:** run `npm install`, then `TEAM_CODE=local npm run serve`, and open `http://localhost:4811/?room=demo` in two browsers. Both see one world. A room name is 3 to 40 lowercase letters, digits or dashes. `TEAM_CODE` is the code the side drawer asks for when you reset a room. A shared room starts with some activity already waiting for Philip, Adam and Auryn, so a demo has something to answer.
 
 ## Where the code is
 

@@ -215,6 +215,7 @@
   .request-section.role-manager { --request-role: var(--role-manager); }
   .request-section.role-operator { --request-role: var(--role-operator); }
   .request-group { border: 0; padding: 0; }
+  details:not([open]) > .request-group { display: none; }
   .request-group .player-answer-unit + .player-answer-unit { border-top: var(--px-1) solid var(--border); }
   .asks-section { margin-top: var(--space-4); }
   .asks-section h2, .setup-section h2 { font-size: var(--type-caption); color: var(--text-subtle); margin-bottom: var(--space-2); }
@@ -597,13 +598,28 @@
     grid-template-columns: minmax(0, 1fr) auto auto auto;
     align-items: center;
     column-gap: var(--space-2);
-    padding: var(--px-20) 0 var(--px-8);
+    padding: var(--px-16) 0 var(--px-4);
   }
   .app-head .brand { grid-column: 1; white-space: nowrap; }
   .build-stamp { color: var(--text-dim); font-size: var(--type-caption); white-space: nowrap; }
   .app-head .domain { grid-column: 1 / -1; justify-self: start; }
-  /* The shared-room line gets its own full-width row; inside column 1 it widened the brand column and crushed the Practice button. */
-  #shared-header { grid-column: 1 / -1; color: var(--text-dim); font-size: var(--type-caption); }
+  #shared-header { color: var(--text-dim); font-size: var(--type-caption); margin: var(--space-2) 0; }
+  .practice-intro { margin: var(--space-2) 0; line-height: 1.4; }
+  .request-section > summary, .sent-kind > summary { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; list-style: none; min-height: var(--px-44); white-space: normal; }
+  .request-section > summary::-webkit-details-marker, .sent-kind > summary::-webkit-details-marker { display: none; }
+  .request-section > summary h2, .sent-kind > summary h3 { margin: 0; min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+  .request-section > summary h2 { color: var(--request-role); font-size: var(--type-title); }
+  .sent-kind > summary h3 { font-size: var(--type-body); }
+  .request-section .group-chevron, .sent-kind .group-chevron { flex: 0 0 auto; color: var(--accent); }
+  .request-section .group-chevron::before, .sent-kind .group-chevron::before { content: "▸"; }
+  .request-section[open] .group-chevron::before, .sent-kind[open] .group-chevron::before { content: "▾"; }
+  .tab[data-tab="requests"] { position: relative; }
+  .request-tab-count { position: absolute; left: calc(50% + 34px); top: 50%; transform: translateY(-50%); display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; }
+  .request-tab-count[hidden] { display: none; }
+  .sent-answer-person { margin: var(--space-3) 0; }
+  .sent-answer-person h2 { margin-bottom: var(--space-2); }
+  .sent-answer-question { padding: var(--space-2) 0; border-top: 1px solid var(--border); }
+  .sent-answer-question strong, .sent-answer-question span { display: block; }
   .app:has(#content.newcomer-home) .tabs {
     display: none;
   }
@@ -1043,18 +1059,18 @@
     min-width: var(--px-44);
   }
   .practice-chip {
-    border: var(--px-1) solid var(--border);
-    background: var(--surface);
-    color: var(--text-dim);
+    border: var(--px-1) solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
     border-radius: var(--px-999);
     padding: var(--px-8) var(--px-12);
     font-size: var(--type-caption);
     min-height: var(--px-44);
     min-width: var(--px-44);
-    white-space: normal;
+    white-space: nowrap;
     text-align: left;
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
   }
   .app-head { grid-template-columns: auto auto minmax(0, 1fr) auto; }
   #practice-toggle { justify-self: end; min-width: max-content; }
@@ -1068,7 +1084,9 @@
     font-weight: 700;
     min-height: var(--px-44);
     min-width: var(--px-44);
+    font-size: 0;
   }
+  .avatar::before { content: attr(data-initial); font-size: var(--type-body); }
   .tab {
     border: 0;
     background: none;
@@ -1319,7 +1337,7 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: color-mix(in srgb, var(--slot-color) 18%, transparent);
+    background: color-mix(in srgb, var(--slot-color) 38%, transparent);
     transform-origin: left;
     animation: answer-undo-sweep var(--undo-window) linear forwards;
     pointer-events: none;
@@ -1559,7 +1577,7 @@
     position: absolute;
     inset: -1px;
     border-radius: inherit;
-    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    background: color-mix(in srgb, var(--accent) 38%, transparent);
     transform-origin: left;
     animation: answer-undo-sweep 1.5s linear forwards;
     pointer-events: none;
@@ -2172,7 +2190,7 @@
   <header class="app-head">
     <div class="brand">Vouch</div>
     <span class="build-stamp" id="build-stamp"></span>
-    <button class="practice-chip" id="practice-toggle" aria-expanded="false" aria-controls="practice-drawer">Practice ▾</button>
+    <button class="practice-chip" id="practice-toggle" aria-expanded="false" aria-controls="practice-drawer">Practice</button>
     <div class="menu-wrap">
       <button
         class="avatar"
@@ -2195,7 +2213,9 @@
     </select></div>
     <aside class="practice-drawer" id="practice-drawer" hidden>
       <h2>Practice</h2>
-      <p class="practice-note">Sample people and times</p>
+      <p class="practice-intro">Everything here is practice. Nothing touches the real BrightID network.</p>
+      <div id="shared-header" hidden>Room · <span id="shared-room-name"></span><span id="shared-here-count"></span><span id="shared-sync-status" role="status"></span></div>
+      <p id="practice-you"></p>
       <label for="persona">Person</label><select id="persona">
         <option value="newcomer">Newcomer — not signed in</option>
         <option value="idris">Idris — seated operator</option>
@@ -2213,11 +2233,10 @@
       <button class="action" data-action="reset-practice">Reset practice</button>
       <div id="shared-reset" hidden><p>Practice people go back to the start. Real people who joined, and what passed between them, stay.</p><label for="team-code">Team code</label><input id="team-code" type="text" autocomplete="off"><button class="action" data-action="reset-room">Reset this room to the start</button><p id="reset-error" role="status"></p></div>
     </aside>
-    <div id="shared-header" hidden>Shared practice · <span id="shared-room-name"></span><span id="shared-here-count"></span><span id="shared-sync-status" role="status"></span></div>
   </header>
   <nav class="tabs" aria-label="App pages">
     <button class="tab" data-tab="home">Home</button
-    ><button class="tab" data-tab="requests">Requests</button
+    ><button class="tab" data-tab="requests">Requests<span class="request-tab-count" id="request-tab-count" aria-hidden="true" hidden></span></button
     ><button class="tab" data-tab="board">Board</button>
   </nav>
   <main id="content"></main>
@@ -2246,8 +2265,9 @@ Minimum version required to store current data is: `+i+`.
 
   (() => {
     "use strict";
-  const BUILD_STAMP = "v31.5 · 2026-10-04 22:17";
-    document.getElementById("build-stamp").textContent = BUILD_STAMP;
+  const BUILD_STAMP = "v32.1 · 2026-10-05 10:35";
+    document.getElementById("build-stamp").textContent = BUILD_STAMP.split(" · ")[0];
+    document.getElementById("build-stamp").title = BUILD_STAMP;
     // Seed data
     const SHOW_REAL_NAMES = true;
     const D = {
@@ -2419,7 +2439,7 @@ Minimum version required to store current data is: `+i+`.
  "people": [
   {
    "key": "usVZTl_O",
-   "name": "Philip Silva",
+   "name": "Philip",
    "idPrefix": "usVZTl_OI9Ib5AKWkocBoqRjgs62HP9E-YYxXygD8Sb",
    "roles": [
     "subject",
@@ -2465,7 +2485,7 @@ Minimum version required to store current data is: `+i+`.
   },
   {
    "key": "WH290SXc",
-   "name": "Adam Stallard",
+   "name": "Adam",
    "idPrefix": "WH290SXcv-6dIC0Bos0o3a2tb6_oNUYJt1PAM0U0W4h",
    "roles": [
     "subject",
@@ -3772,7 +3792,7 @@ Minimum version required to store current data is: `+i+`.
   "negativeMultiplier": 4,
   "sourceCode": "aura-node/scorer/verifications/aura.py"
  },
- "source": "Invented practice world, shaped like the BrightID Uniqueness graph; only Philip Silva, Adam Stallard and Auryn are real names, and every ID is invented",
+ "source": "Invented practice world, shaped like the BrightID Uniqueness graph; only Philip, Adam and Auryn are real names, and every ID is invented",
  "capturedAt": "2026-09-27T22:05:01Z"
 };
     const UKEY = Object.fromEntries(
@@ -3873,7 +3893,10 @@ Minimum version required to store current data is: `+i+`.
     );
     const practiceInitial = {
       outgoing: [
-        ...(demoWorld ? [...demoAsks, ...demoVouches] : []),
+        ...(demoWorld ? [...demoAsks, ...demoVouches] : [
+          ...demoAsks.filter(x => x.to === "philip"),
+          ...resetTrainerAsks.map(x => ({ from: x.from, to: x.to, domain: x.domain, kind: "trainer", time: x.time, status: "waiting" })),
+        ]),
         {
           from: "nora",
           to: "dara",
@@ -5536,6 +5559,7 @@ Minimum version required to store current data is: `+i+`.
     function askName(x) {
       const invitedBy = Object.values(S.invites).some(invite => invite.claimedBy === x.from && invite.inviter === x.to);
       if (invitedBy) return D.names[x.to] || x.to;
+      if (FOUNDING_TEAM.includes(x.to)) return D.names[x.to] || x.to;
       return x.to === "team" ? "Interfold team" : x.to.startsWith("link:") ? "Someone you sent a link to" : label(x.to);
     }
     function waitingLines(p) {
@@ -5853,6 +5877,33 @@ Minimum version required to store current data is: `+i+`.
         row.subject + (row.answers.some((a) => a.role === "manager") ? ":manager" : row.answers.some((a) => a.role === "trainer") ? ":trainer" : row.answers.some((a) => a.role === "player") ? ":player" : ""),
       );
     }
+    document.addEventListener("click", (event) => {
+      const summary = event.target.closest("details[data-request-group] > summary");
+      if (!summary) return;
+      const group = summary.parentElement;
+      const key = `auraMock_requestGroup:${S.persona}:${S.domain}:${group.dataset.requestGroup}`;
+      localStorage.setItem(key, group.open ? "closed" : "open");
+    });
+    function requestGroupKey(kind) {
+      return `auraMock_requestGroup:${S.persona}:${S.domain}:${kind}`;
+    }
+    function RequestGroup(kind, title, count, content, className = "") {
+      const open = localStorage.getItem(requestGroupKey(kind)) !== "closed";
+      return `<details class="${className}" data-request-group="${esc(kind)}"${open ? " open" : ""}><summary><h2>${esc(title)} · ${count}</h2><span class="group-chevron" aria-hidden="true"></span></summary><div class="request-group">${content}</div></details>`;
+    }
+    function sentAskDetail() {
+      const [kind, to] = JSON.parse(decodeURIComponent(S.detail || "%5B%22ask%22%2C%22%22%5D"));
+      const name = to === "team" ? "Interfold team" : to.startsWith("link:") ? "Someone you sent a link to" : label(to);
+      const kindName = ({ ask: S.domain === "uniqueness" ? "Vouch ask" : "Node operator ask", team: "Node operator ask", player: "Player ask", trainer: "Trainer ask", manager: "Manager ask" })[kind] || "Ask";
+      const recipients = [...new Set((kind === "ask" ? S.outgoing.filter(x => x.domain === S.domain && x.from === S.persona && !["trainer", "manager", "player"].includes(x.kind)).map(x => x.to) : kind === "team" ? ["team"] : [...S.playerRequests.filter(x => x.domain === S.domain && x.from === S.persona && (x.role || "player") === kind), ...S.outgoing.filter(x => x.domain === S.domain && x.from === S.persona && x.kind === kind)].map(x => x.to)).concat(to))];
+      const questionNames = kind === "ask" || kind === "team" ? (S.domain === "uniqueness" ? ["Is this one real, unique person?"] : Q) : [kind === "vouch" ? "Is this one real, unique person?" : `Should this person be a ${kind}?`];
+      const answers = (recipient, index) => {
+        if (kind === "ask" || kind === "team") return (S.domain === "uniqueness" ? uvouchers(S.persona) : votes(S.persona, index)).find(v => v.r === recipient);
+        const answer = S.answers.find(a => a.domain === S.domain && a.subject === S.persona && a.rater === recipient && a.role === kind);
+        return answer && { yes: answer.yes ?? answer.positive ?? answer.status === "Rated in", c: answer.conf ?? answer.confidence, t: answer.time ?? answer.timestamp ?? answer.updatedAt };
+      };
+      return `<div class="back">${nav("← Back", "back")}</div><h1>${esc(name)} · ${esc(kindName)}</h1>${recipients.map(recipient => `<section class="sent-answer-person"><h2>${esc(recipient === "team" ? "Interfold team" : recipient.startsWith("link:") ? "Someone you sent a link to" : label(recipient))}</h2>${questionNames.map((question, index) => { const vote = answers(recipient, index); return `<div class="sent-answer-question"><strong>${esc(question)}</strong><span>${vote ? `${vote.yes ? "Yes" : "No"} · ${esc(vote.c || 1)} of 4 · ${age(vote.t)}` : "Waiting"}</span></div>`; }).join("")}</section>`).join("")}`;
+    }
     function requests() {
       const { state: S, data: D } = screenModel();
       if (S.persona === "newcomer")
@@ -5863,10 +5914,10 @@ Minimum version required to store current data is: `+i+`.
         incoming = queue.incoming;
       let outgoing = S.outgoing
         .filter((x) => x.domain === S.domain && x.from === p)
-        .map((x) => ({ ...x, request: "ask" }));
+        .map((x) => ({ ...x, request: ["player", "trainer", "manager"].includes(x.kind) ? x.kind : "ask" }));
       outgoing.push(
         ...S.playerRequests
-          .filter((x) => x.domain === S.domain && x.from === p && (!["trainer", "manager"].includes(x.role) || !hasRole(p, x.role)))
+          .filter((x) => x.domain === S.domain && x.from === p)
           .map((x) => ({ ...x, request: x.role || "player" })),
       );
       const finishedRoleAsks = ["trainer", "manager"].filter((role) =>
@@ -5878,14 +5929,16 @@ Minimum version required to store current data is: `+i+`.
           request: "team",
           status: "waiting",
         });
+      const allOutgoing = outgoing.slice();
       outgoing = outgoing.filter((x) => {
         if (x.request === "player") return ["waiting", "Sent", "Pending"].includes(x.status);
-        if (["trainer", "manager"].includes(x.request)) return true;
+        if (["trainer", "manager"].includes(x.request)) return !hasRole(p, x.request) && ["waiting", "Sent", "Pending"].includes(x.status);
         if (x.to.startsWith("link:") || x.to === "team") return true;
         if (u) return !uvouchers(p).some((v) => v.r === x.to);
         const answers = Q.flatMap((_, i) => votes(p, i)).filter((v) => v.r === x.to);
         return !answers.some((v) => !v.yes) && answers.length < Q.length;
       });
+      const finishedSent = allOutgoing.filter(x => !outgoing.includes(x));
       outgoing.sort((a, b) => b.time.localeCompare(a.time));
       let pin = queue.player;
       let completed =
@@ -5931,16 +5984,17 @@ Minimum version required to store current data is: `+i+`.
             const answers = S.domain === "uniqueness" ? uvouchers(p).filter((v) => v.r === x.to) : Q.flatMap((_, i) => votes(p, i)).filter((v) => v.r === x.to);
             return answers.some((v) => !v.yes) ? "No" : answers.length >= (S.domain === "uniqueness" ? 1 : Q.length) ? "Yes" : "Waiting";
           }
-          return ["waiting", "Sent", "Pending"].includes(x.status) ? "Waiting" : x.status === "Rated in" || x.status === "Yes" ? "Yes" : "No";
+          const answer = S.answers.find(a => a.domain === S.domain && a.subject === p && a.rater === x.to && a.role === kind);
+          return answer ? answer.yes ? "Yes" : "No" : ["waiting", "Sent", "Pending"].includes(x.status) ? "Waiting" : x.status === "Rated in" || x.status === "Yes" ? "Yes" : "No";
         });
         const title = ({ ask: u ? "Vouch ask" : "Node operator ask", team: "Node operator ask", player: "Player ask", trainer: "Trainer ask", manager: "Manager ask" })[kind] || "Ask";
-        return `<section class="sent-kind"><h3>${title} · ${answered.filter((x) => x === "Yes").length} of ${asks.length} Yes</h3>${asks.map((x, i) => DenseRow(esc(x.to === "team" ? "Interfold team" : x.to.startsWith("link:") ? "Someone you sent a link to" : label(x.to)), StatusChip(answered[i]), `${title} · ${age(x.time)}${["trainer", "manager"].includes(kind) ? " · " + esc(label(x.to)) + " · " + answered[i] + (answered[i] === "Waiting" ? "" : " · " + esc(x.conf || 1)) : ""}`, x.to === "team" || x.to.startsWith("link:") ? "" : "detail", x.to)).join("")}</section>`;
+        return `<details class="sent-kind" data-request-group="sent-${kind}"${localStorage.getItem(requestGroupKey(`sent-${kind}`)) === "closed" ? "" : " open"}><summary><h3>${title} · ${asks.length}</h3><span class="group-chevron" aria-hidden="true"></span></summary><div class="request-group"><p class="sent-progress">${answered.filter((x) => x === "Yes").length} of ${asks.length} Yes</p>${asks.map((x, i) => { const rating = S.answers.find(a => a.domain === S.domain && a.subject === p && a.rater === x.to && a.role === kind); return DenseRow(esc(x.to === "team" ? "Interfold team" : x.to.startsWith("link:") ? "Someone you sent a link to" : label(x.to)), StatusChip(answered[i]), `${title} · ${age(x.time)}${["trainer", "manager"].includes(kind) ? " · " + esc(label(x.to)) + " · " + answered[i] + (answered[i] === "Waiting" ? "" : " · " + esc(rating?.conf || x.conf || 1)) : ""}`, "sent-ask-detail", encodeURIComponent(JSON.stringify([kind, x.to]))); }).join("")}</div></details>`;
       }).join("");
       let trainerHtml = [...queue.trainer].sort((a, b) => b.time.localeCompare(a.time)).map((x) => {
         const record = S.answers.find((a) => a.domain === S.domain && a.subject === x.from && a.rater === p && a.role === "trainer");
         return `<div class="player-answer-unit" data-request-row-status="${esc(x.status)}">${DenseRow(esc(label(x.from)), record ? StatusChip("Answered") : "", "Wants to be a trainer · " + age(x.time))}<div class="ask-question">Should this person be a trainer?</div>${AnswerControl("trainer", x.from, 0, record)}</div>`;
       }).join("");
-      const requestSection = (title, body, role) => body ? `<section class="section request-section role-${role}"><h2>${title}</h2><div class="request-group">${body}</div></section>` : "";
+      const requestSection = (title, body, role) => body ? RequestGroup(`incoming-${role}`, title, role === "player" ? playerRows.length : role === "trainer" ? queue.trainer.length : role === "manager" ? incoming.filter(x => x.type === "manager").length : incoming.filter(x => x.type !== "manager").length, body, `section request-section role-${role}`) : "";
       const questionHtml = incoming.filter((x) => x.type !== "manager").map((x) => DenseRow(esc(label(x.from)), '<span class="request-row-tail">' + StatusChip(x.status) + '<span class="chevron">›</span></span>', (u ? "Asked for a vouch" : "Asked you") + " · " + questionLabel(questionCount(x.type)) + " · " + age(x.time) + (!u ? cells(x.from) + uniquenessSubjectChip(x.from) : ""), "answer", x.from, "", x.status)).join("");
       const managerHtml = incoming.filter((x) => x.type === "manager").map((x) => DenseRow(esc(label(x.from)), StatusChip(x.status), "Wants to be a manager · " + age(x.time), "answer", x.from + ":manager", "", x.status)).join("");
       const ownedInvites = Object.entries(S.invites).filter(([, x]) => x.inviter === p);
@@ -5951,7 +6005,7 @@ Minimum version required to store current data is: `+i+`.
         : '<span class="chevron">›</span>', ignored ? "" : "answer", x.from + (x.type === "player" ? ":player" : x.type === "trainer" ? ":trainer" : ""), ignored ? "" : "Later")}</div>`;
       const laterHtml = queue.later.length ? `<section class="section"><h2>Later</h2>${queue.later.map((x) => deferredRow(x)).join("")}</section>` : "";
       const ignoredHtml = queue.ignored.length ? `<details class="ignored-list"><summary>Ignored (${queue.ignored.length})</summary>${queue.ignored.map((x) => deferredRow(x, true)).join("")}</details>` : "";
-      return `<h1>Requests</h1>${!u ? `<div class="enter-code">${InputField("arrival-code-input", "Enter a code", "6-character code", "", 'maxlength="6" autocomplete="off"')}${action("Open request", "redeem-code")}</div>` : ""}${!isPlayer() && !u && !FOUNDING_TEAM.includes(p) ? `<div class="quiet-line">${nav(p === "idris" ? "Review your operator status →" : "Get endorsed as a node operator →", p === "idris" ? "detail" : "endorse", p === "idris" ? p : "")} · ${nav("Ask to be a player →", "player-ask")}</div>` : ""}<section class="section"><h2>Waiting on you · ${incoming.length + pin.length + queue.trainer.length}</h2>${!incoming.length && !pin.length && !queue.trainer.length && !completed ? "<p>Nothing waiting on you.</p>" : ""}</section>${requestSection("Player asks", playerHtml, "player")}${requestSection("Trainer asks", trainerHtml, "trainer")}${requestSection("Manager asks", managerHtml, "manager")}${requestSection(u ? "Vouch requests" : "Node operator questions", questionHtml, u ? "vouch" : "operator")}<section class="section"><h2>Waiting on others · ${outgoing.length + (!u ? ownedInvites.length : 0)}</h2>${!u && canInvite(p) ? `<div class="quiet-line">${nav("Invite someone →", "invite")}</div>` : ""}${card((sentHtml + inviteRows) || "<p>Nothing waiting on others.</p>")}${nav("Ask someone →", "ask")}</section>${Disclosure("Answered · " + (prior.length + finishedRoleAsks.length), card(prior.map((x) => earlierRow(x, S.domain)).join("") + finishedRoleAsks.map((role) => DenseRow(role[0].toUpperCase() + role.slice(1) + " ask", StatusChip("Done"), "Done · you're a " + role)).join("") || "<p>No earlier answers.</p>"))}${invitesHtml}${laterHtml}${ignoredHtml}${StateFooter(queue.rows.length ? (incomingHtml.includes("Seated") ? "Seated: can hold threshold-council tickets." : "Answer when you’re ready.") : "You’re done here.")}`;
+      return `<h1>Requests</h1>${!u ? `<div class="enter-code">${InputField("arrival-code-input", "Enter a code", "6-character code", "", 'maxlength="6" autocomplete="off"')}${action("Open request", "redeem-code")}</div>` : ""}${!isPlayer() && !u && !FOUNDING_TEAM.includes(p) ? `<div class="quiet-line">${nav(p === "idris" ? "Review your operator status →" : "Get endorsed as a node operator →", p === "idris" ? "detail" : "endorse", p === "idris" ? p : "")} · ${nav("Ask to be a player →", "player-ask")}</div>` : ""}<section class="section"><h2>Waiting on you · ${incoming.length + pin.length + queue.trainer.length}</h2>${!incoming.length && !pin.length && !queue.trainer.length && !completed ? "<p>Nothing waiting on you.</p>" : ""}</section>${requestSection("Player asks", playerHtml, "player")}${requestSection("Trainer asks", trainerHtml, "trainer")}${requestSection("Manager asks", managerHtml, "manager")}${requestSection(u ? "Vouch requests" : "Node operator questions", questionHtml, u ? "vouch" : "operator")}<section class="section"><h2>Waiting on others · ${outgoing.length + (!u ? ownedInvites.length : 0)}</h2>${!u && canInvite(p) ? `<div class="quiet-line">${nav("Invite someone →", "invite")}</div>` : ""}${card((sentHtml + inviteRows) || "<p>Nothing waiting on others.</p>")}${nav("Ask someone →", "ask")}</section>${Disclosure("Answered · " + (prior.length + finishedRoleAsks.length + finishedSent.length), card(prior.map((x) => earlierRow(x, S.domain)).join("") + finishedRoleAsks.map((role) => DenseRow(role[0].toUpperCase() + role.slice(1) + " ask", StatusChip("Done"), "Done · you're a " + role)).join("") + finishedSent.map((x) => DenseRow(esc(x.to === "team" ? "Interfold team" : x.to.startsWith("link:") ? "Someone you sent a link to" : label(x.to)), StatusChip("Answered"), `${({ ask: u ? "Vouch ask" : "Node operator ask", team: "Node operator ask", player: "Player ask", trainer: "Trainer ask", manager: "Manager ask" })[x.request] || "Ask"} · ${age(x.time)}`, "sent-ask-detail", encodeURIComponent(JSON.stringify([x.request, x.to])))).join("") || "<p>No earlier answers.</p>"))}${invitesHtml}${laterHtml}${ignoredHtml}${StateFooter(queue.rows.length ? (incomingHtml.includes("Seated") ? "Seated: can hold threshold-council tickets." : "Answer when you’re ready.") : "You’re done here.")}`;
     }
 
     function playerAsk() {
@@ -6767,7 +6821,7 @@ Minimum version required to store current data is: `+i+`.
       ${section("AnswerControl", [s("unanswered", answer()), s("Yes pending, confidence 1", answer({entry:entry(true,1)})), s("Yes pending, confidence 4", answer({entry:entry(true,4)})), s("No pending, confidence 2", answer({entry:entry(false,2)})), s("Yes committed", answer({record:record(true)})), s("No committed", answer({record:record(false)})), s("edited", answer({record:record(true,true)})), s("skip pending", answer({pendingChoice:{kind:"later"}})), s("Skipped", answer({chosenChoice:"later"})), s("Ignored", answer({chosenChoice:"ignored"})), s("player unanswered", AnswerControlView({kind:"player",subject:"mateo",question:0})), s("trainer No committed", AnswerControlView({kind:"trainer",subject:"mateo",question:0,record:record(false)})), s("vouch confidence 3", AnswerControlView({kind:"vouch",subject:"mateo",question:0,entry:entry(true,3)})), s("Numbers only", AnswerControlView({kind:"question",subject:"mateo",question:0,record:{...record(true),conf:3}})), s("Numbers and words", AnswerControlView({kind:"question",subject:"mateo",question:0,record:{...record(true),conf:3},confidenceWords:true}))])}
       ${section("SendSlot", [s("ready Ask", SendSlotView({kind:"endorsement",to:"mateo",label:"Ask"})), s("ready Rate in", SendSlotView({kind:"player",to:"mateo",label:"Rate in"})), s("sending", SendSlotView({kind:"endorsement",to:"mateo",state:"sending"})), s("sent", SendSlotView({kind:"endorsement",to:"mateo",state:"sent",time:"2026-09-28T12:00:00Z"})), s("Didn't send · Try again", SendSlotView({kind:"endorsement",to:"mateo",state:"failed"}))])}
       ${section("DoneState", [s("title only", DoneState("✓ Answered")), s("title plus next action", DoneState("✓ Answered", "Next request →", "answer-next", "mateo"))])}
-      ${section("Disclosure", [s("closed", Disclosure("How to decide", "<p>Consider the evidence.</p>")), s("open", Disclosure("How to decide", "<p>Consider the evidence.</p>", true))])}</div>`;
+      ${section("Disclosure", [s("closed", Disclosure("How to decide", "<p>Consider the evidence.</p>") + '<details class="section request-section role-operator"><summary><h2>Node operator questions · 2</h2><span class="group-chevron" aria-hidden="true"></span></summary><div class="request-group"><p>Rosa</p><p>Kenji</p></div></details>'), s("open", Disclosure("How to decide", "<p>Consider the evidence.</p>", true) + '<details class="section request-section role-operator" open><summary><h2>Node operator questions · 2</h2><span class="group-chevron" aria-hidden="true"></span></summary><div class="request-group"><p>Rosa</p><p>Kenji</p></div></details>')])}</div>`;
     }
     function showGallery() {
       document.body.classList.add("gallery-mode");
@@ -6799,18 +6853,21 @@ Minimum version required to store current data is: `+i+`.
         updatePresenceUI();
         if (lastBeatPersona !== S.persona) { lastBeatPersona = S.persona; queueMicrotask(presenceBeat); }
       }
-      document.getElementById("practice-toggle").textContent = S.persona === "newcomer" ? "Practice ▾" : `Trying as ${label(S.persona)} · ${topRole(S.persona)} ▾`;
+      document.getElementById("practice-toggle").textContent = "Practice";
+      document.getElementById("practice-you").textContent = S.persona === "newcomer" ? "You haven't picked anyone yet." : `You're ${label(S.persona)}`;
       document.getElementById("domain").value = S.domain;
-      document.getElementById("avatar").textContent = (
-        label(S.persona) || "N"
-      ).slice(0, 1);
+      document.getElementById("avatar").textContent = label(S.persona) || "Newcomer";
+      document.getElementById("avatar").dataset.initial = (label(S.persona) || "N").slice(0, 1);
       document.getElementById("menu-person-name").textContent = label(S.persona) || "Newcomer";
       document.getElementById("menu").hidden = true;
       document.getElementById("avatar").setAttribute("aria-expanded", "false");
       document.querySelectorAll(".tab").forEach((b) => {
         if (b.dataset.tab === "requests") {
           const queue = deriveRequestQueue(S.persona, S.domain);
-          b.hidden = !(isPlayer() || queue.rows.length || queue.ignored.length || S.playerRequests.some((x) => x.to === S.persona && x.domain === S.domain));
+          b.hidden = S.persona === "newcomer";
+          const badge = document.getElementById("request-tab-count");
+          badge.textContent = String(queue.rows.length);
+          badge.hidden = queue.rows.length === 0;
         }
         b.classList.toggle("active", S.view === b.dataset.tab);
         b.setAttribute(
@@ -6855,6 +6912,7 @@ Minimum version required to store current data is: `+i+`.
         "sign-in-flow": signIn,
         "name-visibility": visibilitySheet,
         "invite-detail": inviteDetail,
+        "sent-ask-detail": sentAskDetail,
         "player-ask": playerAsk,
         "partner-view": partnerView,
         "setup-node": setupNode,

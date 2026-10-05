@@ -75,7 +75,7 @@ async function presenceApi(route) {
     await page.route('http://mock.test/api/presence**', presenceApi);
   }
   const fresh = () => `check-${++roomNo}`;
-  const open = async (page, room, code) => { await page.goto(`http://mock.test/?room=${room}${code ? '&code=' + code : ''}`); await page.locator('#shared-header', { hasText: `Shared practice · ${room}` }).waitFor(); };
+  const open = async (page, room, code) => { await page.goto(`http://mock.test/?room=${room}${code ? '&code=' + code : ''}`); await page.waitForFunction(room => document.querySelector('#shared-header')?.textContent.includes(`Room · ${room}`), room); };
   const click = (page, name) => page.getByRole('button', { name, exact: true }).first().click();
   const choose = async (page, name) => {
     await click(page, 'Sign in with your passkey');
@@ -112,16 +112,16 @@ async function presenceApi(route) {
   };
   await check('Operator invite across browsers', async () => {
     const room = fresh(), [a, b] = pages, link = await makeInvite(a, room);
-    await b.goto(link); await b.getByText('Philip Silva invited you').waitFor({ timeout: 6000 });
+    await b.goto(link); await b.getByText('Philip invited you').waitFor({ timeout: 6000 });
     if (await b.locator('#identity-name').inputValue() !== 'Rowan') throw Error('invite name not prefilled');
     await click(b, 'Create your passkey'); await b.getByRole('heading', { name: /Your main node’s public address/ }).waitFor();
     await b.locator('#node-address').fill('https://node.rowan.example'); await click(b, 'Check my node');
     await click(b, "No, that's all"); await click(b, 'Just me'); await click(b, 'Get endorsed →');
-    await b.getByText("You've asked 1").waitFor(); await b.getByText('Philip Silva').first().waitFor();
+    await b.getByText("You've asked 1").waitFor(); await b.locator('#content').getByText('Philip').first().waitFor();
     await click(a, 'Requests'); await a.locator('.request-section.role-operator', { hasText: 'Rowan' }).waitFor({ timeout: 6000 });
     await a.locator('.request-section.role-operator .lego-dense-row', { hasText: 'Rowan' }).first().click();
     for (let i = 0; i < 3; i++) await a.locator('#content .answer-slot[data-yes="true"]').nth(i).click();
-    await b.getByText('Philip Silva').first().waitFor(); await click(b, 'Home');
+    await b.locator('#content').getByText('Philip').first().waitFor(); await click(b, 'Home');
     await b.getByText('1 of 2 answered Yes').waitFor({ timeout: 6000 });
   });
   await check('One invite has one winner', async () => {
@@ -164,7 +164,7 @@ async function presenceApi(route) {
     await open(b, room); await switchTo(b, 'adam'); await click(b, 'Requests');
     for (const name of ['Kenji', 'Rosa', 'Mateo']) await b.locator('.request-section.role-operator', { hasText: name }).waitFor();
     await switchTo(b, 'auryn'); await b.selectOption('#domain', 'uniqueness'); await click(b, 'Requests');
-    for (const name of ['Philip Silva', 'Adam Stallard']) {
+    for (const name of ['Philip', 'Adam']) {
       const row = b.locator('.sent-kind .lego-dense-row', { hasText: name }).first();
       await row.waitFor(); if (!(await row.innerText()).includes('Waiting')) throw Error(name + ' trainer ask is not waiting');
     }
@@ -387,8 +387,8 @@ async function presenceApi(route) {
     const room = fresh(), [a, b] = pages;
     await open(a, room); await switchTo(a, 'auryn');
     await open(b, room); await switchTo(b, 'philip');
-    await b.locator('#shared-header', { hasText: '· 2 here' }).waitFor({ timeout: 12000 });
     await b.locator('#practice-toggle').click();
+    await b.locator('#practice-drawer #shared-header', { hasText: '· 2 here' }).waitFor({ timeout: 12000 });
     await b.locator('#persona option[value="auryn"]', { hasText: '· in use' }).waitFor({ timeout: 12000 });
     await b.selectOption('#persona', 'auryn');
     await b.getByText('Someone else is using Auryn. Use it anyway?', { exact: true }).waitFor();
@@ -401,9 +401,10 @@ async function presenceApi(route) {
     for (const width of [360, 400, 620, 786]) {
       await a.setViewportSize({ width, height: 900 }); await open(a, room);
       const box = await a.locator('#practice-toggle').boundingBox();
-      if (box.height > 60 || box.width < 60) throw Error(`Practice button squeezed at ${width}px: ${Math.round(box.width)}x${Math.round(box.height)}`);
-      const head = await a.locator('.app-head').boundingBox(), shared = await a.locator('#shared-header').boundingBox();
-      if (shared.width < head.width * 0.9) throw Error(`shared line not full width at ${width}px`);
+      if (box.height > 48 || box.width < 60) throw Error(`Practice button squeezed at ${width}px: ${Math.round(box.width)}x${Math.round(box.height)}`);
+      if (await a.locator('.app-head > #shared-header').count()) throw Error(`room line remains in header at ${width}px`);
+      await a.locator('#practice-toggle').click();
+      await a.locator('#practice-drawer #shared-header', { hasText: `Room · ${room}` }).waitFor();
     }
     await a.setViewportSize({ width: 400, height: 900 });
   });

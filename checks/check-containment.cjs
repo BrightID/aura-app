@@ -24,7 +24,7 @@ const FILE = process.argv[2] || __dirname + '/../index.html';
         const out = [], head = document.querySelector('.app-head'), bounds = head.getBoundingClientRect();
         const avatar = document.querySelector('#avatar').getBoundingClientRect();
         if (Math.abs(avatar.right - bounds.right) > 1) out.push(`avatar right edge ${avatar.right.toFixed(1)} misses header content edge ${bounds.right.toFixed(1)}`);
-        if (document.querySelector('#build-stamp').textContent !== 'v23.2 · 2026-09-30 14:19') out.push('full build stamp is missing');
+        if (document.querySelector('#build-stamp').textContent !== 'v23.2' || document.querySelector('#build-stamp').title !== 'v23.2 · 2026-09-30 14:19') out.push('version display or full hover stamp is missing');
         const select = document.querySelector('#domain');
         if (select.selectedOptions[0].textContent !== (select.value === 'interfold' ? 'Interfold' : 'Uniqueness')) out.push('domain label includes extra text');
         for (const el of head.querySelectorAll('*')) {
