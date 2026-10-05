@@ -396,6 +396,17 @@ async function presenceApi(route) {
     if (await b.locator('#persona').inputValue() !== 'philip' || await b.evaluate(() => window.auraMockAdapter.ui.persona) !== 'philip') throw Error('Cancel changed persona');
     if (store(room).world && 'presence' in store(room).world) throw Error('presence stored in world');
   });
+  await check('Shared header keeps its controls whole', async () => {
+    const room = fresh(), [a] = pages;
+    for (const width of [360, 400, 620, 786]) {
+      await a.setViewportSize({ width, height: 900 }); await open(a, room);
+      const box = await a.locator('#practice-toggle').boundingBox();
+      if (box.height > 60 || box.width < 60) throw Error(`Practice button squeezed at ${width}px: ${Math.round(box.width)}x${Math.round(box.height)}`);
+      const head = await a.locator('.app-head').boundingBox(), shared = await a.locator('#shared-header').boundingBox();
+      if (shared.width < head.width * 0.9) throw Error(`shared line not full width at ${width}px`);
+    }
+    await a.setViewportSize({ width: 400, height: 900 });
+  });
   await check('Merge is pure', async () => {
     const page = pages[0];
     const okay = await page.evaluate(() => {

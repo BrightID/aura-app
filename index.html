@@ -602,6 +602,8 @@
   .app-head .brand { grid-column: 1; white-space: nowrap; }
   .build-stamp { color: var(--text-dim); font-size: var(--type-caption); white-space: nowrap; }
   .app-head .domain { grid-column: 1 / -1; justify-self: start; }
+  /* The shared-room line gets its own full-width row; inside column 1 it widened the brand column and crushed the Practice button. */
+  #shared-header { grid-column: 1 / -1; color: var(--text-dim); font-size: var(--type-caption); }
   .app:has(#content.newcomer-home) .tabs {
     display: none;
   }
@@ -1055,7 +1057,7 @@
     overflow-wrap: anywhere;
   }
   .app-head { grid-template-columns: auto auto minmax(0, 1fr) auto; }
-  #practice-toggle { justify-self: end; }
+  #practice-toggle { justify-self: end; min-width: max-content; }
   .avatar {
     width: var(--px-44);
     height: var(--px-44);
@@ -2244,7 +2246,7 @@ Minimum version required to store current data is: `+i+`.
 
   (() => {
     "use strict";
-  const BUILD_STAMP = "v31.4 · 2026-10-04 22:11";
+  const BUILD_STAMP = "v31.5 · 2026-10-04 22:17";
     document.getElementById("build-stamp").textContent = BUILD_STAMP;
     // Seed data
     const SHOW_REAL_NAMES = true;
